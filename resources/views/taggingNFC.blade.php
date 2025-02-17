@@ -64,43 +64,40 @@
         $('#btnNotFound').css('display', 'none');
         $('#btnLepas').css('display', 'none');
     }
-    const html5QrCode = new Html5Qrcode("reader");
-    const config = { fps: 10, qrbox: { width: 350, height: 200 } };
-    const qrCodeDisplay = (config) => {
-        html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
-    }
-    const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-        $('#barcode').val(decodedText);
-        return $.get("{{ url('tagging/search') }}" + '?barcode=' + decodedText, function (response) {
-            if (response["Status"] == "Success") {
-                let data = response["Data"];
-                let title = data["TITLE"].split('/')[0];
-                $('#title').text(title);
-                $('#barcode').val(decodedText);
-                $('#nodeposit').val(data['NOINDUK_DEPOSIT']);
-                html5QrCode.stop();
-                $('#btnSimpan').css('display', 'block');
-                $('#btnLepas').css('display', 'block');
-                $('#btnMetadata').css('display', 'block');
-            } else {
-                $('.title').css('display', 'none');
-                $('.nodeposit').css('display', 'none');
-                html5QrCode.stop();
-                alert(response["Message"]);
-                $('#btnNotFound').css('display', 'block');
-                qrCodeDisplay(config);
-                hideButton();
-            }
+    if ('NDEFReader' in window) {
+        const ndef = new NDEFReader();
+        ndef.scan().then(() => {
+            console.log("Scan started successfully.");
+            ndef.onreadingerror = () => {
+                console.log("Cannot read data from the NFC tag. Try another one?");
+            };
+            ndef.onreading = event => {
+                console.log("NDEF message read.");
+            };
+        }).catch(error => {
+            console.log(`Error! Scan failed to start: ${error}.`);
         });
-    };
-    
+        ndef.onreading = event => {
+            const message = event.message;
+            for (const record of message.records) {
+                console.log("Record type:  " + record.recordType);
+                console.log("MIME type:    " + record.mediaType);
+                console.log("Record id:    " + record.id);
+                switch (record.recordType) {
+                case "text":
+                    // TODO: Read text record with record data, lang, and encoding.
+                    break;
+                case "url":
+                    // TODO: Read URL record with record data.
+                    break;
+                default:
+                    // TODO: Handle other records with record data.
+                }
+            }
+        };
+    }
     hideButton();
-    // If you want to prefer front camera
-    //html5QrCode.start({ facingMode: "user" }, config, qrCodeSuccessCallback);
-
-    // If you want to prefer back camera
-    //html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
-    qrCodeDisplay(config);
+   
     $('#btnSave').on('click', function () {
         alert('ok!');
     });

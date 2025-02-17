@@ -17,10 +17,10 @@ class ProtectLoginMiddleware
      */
     public function handle($request, Closure $next)
     {
-        //if (session('user') == null) {
-        //    session()->flush();
-        //    return redirect('/login');
-        //}
+        if (session('user') == null) {
+            session()->flush();
+            return redirect('/login');
+        }
         return $next($request);
     }
 }

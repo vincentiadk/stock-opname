@@ -1,14 +1,12 @@
 @extends('layouts.index')
 @section('content')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <div class="listview-title mt-2">Lokasi Default</div>
 <ul class="listview image-listview text inset">
     <li>
         <div class="item">
             <div class="in">
-                <select class="form-control">
-                    <option>Lantai 4A</option>
-                    <option>Lantai 5A</option>
-                    <option>Lantai 6A</option>
+                <select class="form-control select2" id="selectLocation" name="location">
                 </select>
             </div>
         </div>
@@ -21,10 +19,7 @@
     <li>
         <div class="item">
             <div class="in">
-                <select class="form-control" id="selectRak">
-                    <option>04A-00A</option>
-                    <option>04A-00B</option>
-                    <option>04A-00C</option>
+                <select class="form-control" id="selectRak" name="rak">
                 </select>
             </div>
         </div>
@@ -56,7 +51,7 @@
     <li>
         <div class="item">
             <div class="in">
-                <select class="form-control" id="selectAmbal">
+                <select class="form-control" id="selectAmbal" name="ambal">
                     <option>00A-0001</option>
                     <option>00A-0002</option>
                     <option>00A-0003</option>
@@ -135,7 +130,7 @@
                             </i>
                         </div>
                     </div>
-
+                    <input type="hidden" id="hidLocation" value="{{$setting ? $setting->id : 0 }}" />
                 </div>
                 <div class="modal-footer">
                     <div class="btn-inline">
@@ -150,6 +145,7 @@
 <!-- * Dialog Form Ambal-->
 @endsection
 @section('script')
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $('#hapusRak').on('click', function(){
         if(confirm('Anda yakin akan menghapus rak nomor ' + $('#selectRak option:selected').text() + '?')){
@@ -169,5 +165,53 @@
         let ambal_value = $('#selectAmbal option:selected').val();
         $('#txtAmbalEdit').val(ambal_value);
     });
+    /*var getSetting = () => {
+        $.ajax({
+            url: "{{ url('setting/location') }}",
+            type: 'GET',
+            contentType: false,
+            processData: false,
+            success: function(response) {
+                var rak = "<option>--Pilih--</option>" ;
+                for(var i = 0; i < response.length; i++){
+                    rak += "<option value='"+response[i]["ID"]+"'>"+response[i]["NAME"] + "</option>";
+                } 
+                $('#selectLocation').append(rak);
+            }
+        });
+    }*/
+    var getSetting = () => {
+        $.getJSON("{{ url('setting/location') }}", function (res) {
+                data = [{
+                    id: "",
+                    nama: "- Pilih Lokasi -",
+                    text: "- Pilih Lokasi -"
+                }].concat(res);
+
+                        //implemen data ke select provinsi
+            $("#selectLocation").select2({
+                dropdownAutoWidth: true,
+                width: '100%',
+                data: data
+            });
+            $('#selectLocation').val("{{$setting ? $setting->id : 0 }}").trigger('change'); 
+        });
+    }
+    getSetting();
+    $('#selectLocation').on('change', function(){
+        $.ajax({
+            type: 'POST',
+            url: '{{ url("setting/location") }}',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            data: {
+                "location_id":$(this).val()
+            },
+            success: function(data) { alert('data: ' + data["Message"]); },
+            contentType: "application/json",
+            dataType: 'json'
+        });
+    })
 </script>
 @endsection

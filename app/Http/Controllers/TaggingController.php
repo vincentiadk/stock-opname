@@ -54,7 +54,7 @@ class TaggingController extends Controller
         }
     }
 
-    public function saveTagging()
+    public function save()
     {
         try {
             $params = [
@@ -76,7 +76,7 @@ class TaggingController extends Controller
 
     public function index()
     {
-        return view('tagging', [
+        return view('taggingNFC', [
             'title' => 'Tagging'
         ]);
     }
