@@ -15,8 +15,11 @@ return new class extends Migration
             $table->id();
             $table->integer('user_id')->nullable()->index();
             $table->integer('location_id')->nullable()->index();
+            $table->string('location_name')->nullable();
             $table->integer('location_shelf_id')->nullable()->index();
+            $table->string('location_shelf_name')->nullable();
             $table->integer('location_rugs_id')->nullable()->index();
+            $table->string('location_rugs_name')->nullable();
             $table->timestamps();
         });
     }

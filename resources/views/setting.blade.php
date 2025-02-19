@@ -36,7 +36,7 @@
                             <i class="clear-input">
                                 <ion-icon name="close-circle"></ion-icon>
                             </i>
-                            <button class="btn btn-primary">Simpan</button>
+                            <span class="btn btn-primary" id="btnTambahRak">Simpan</span>
                         </div>
                     </div>
                 </div>
@@ -52,9 +52,6 @@
         <div class="item">
             <div class="in">
                 <select class="form-control" id="selectAmbal" name="ambal">
-                    <option>00A-0001</option>
-                    <option>00A-0002</option>
-                    <option>00A-0003</option>
                 </select>
             </div>
         </div>
@@ -71,7 +68,7 @@
                             <i class="clear-input">
                                 <ion-icon name="close-circle"></ion-icon>
                             </i>
-                            <button class="btn btn-primary">Simpan</button>
+                            <span class="btn btn-primary" id="btnTambahAmbal">Simpan</span>
                         </div>
                     </div>
                 </div>
@@ -92,6 +89,7 @@
                     <div class="form-group basic">
                         <div class="input-wrapper">
                             <label class="label" for="text1">Masukan perubahan nomor rak</label>
+                            <input type="hidden" id="idRak">
                             <input type="text" class="form-control" id="txtRakEdit">
                             <i class="clear-input">
                                 <ion-icon name="close-circle"></ion-icon>
@@ -103,7 +101,7 @@
                 <div class="modal-footer">
                     <div class="btn-inline">
                         <button type="button" class="btn btn-text-secondary" data-bs-dismiss="modal">CANCEL</button>
-                        <button type="button" class="btn btn-text-primary" data-bs-dismiss="modal">SIMPAN</button>
+                        <span type="button" class="btn btn-text-primary" data-bs-dismiss="modal" id="btnModifyRak">SIMPAN</span>
                     </div>
                 </div>
             </form>
@@ -125,6 +123,7 @@
                         <div class="input-wrapper">
                             <label class="label" for="text1">Masukan perubahan nomor ambal</label>
                             <input type="text" class="form-control" id="txtAmbalEdit">
+                            <input type="hidden" id="idAmbal">
                             <i class="clear-input">
                                 <ion-icon name="close-circle"></ion-icon>
                             </i>
@@ -135,7 +134,7 @@
                 <div class="modal-footer">
                     <div class="btn-inline">
                         <button type="button" class="btn btn-text-secondary" data-bs-dismiss="modal">CANCEL</button>
-                        <button type="button" class="btn btn-text-primary" data-bs-dismiss="modal">SIMPAN</button>
+                        <span class="btn btn-text-primary" data-bs-dismiss="modal" id="btnModifyAmbal">SIMPAN</span>
                     </div>
                 </div>
             </form>
@@ -160,26 +159,103 @@
     $('#editRak').on('click', function(){
         let rak_value = $('#selectRak option:selected').val();
         $('#txtRakEdit').val(rak_value);
+        $('#idRak').val($('#selectRak').val());
     });
     $('#editAmbal').on('click', function(){
         let ambal_value = $('#selectAmbal option:selected').val();
         $('#txtAmbalEdit').val(ambal_value);
+        $('#idAmbal').val($('#selectAmbal').val());
     });
-    /*var getSetting = () => {
-        $.ajax({
-            url: "{{ url('setting/location') }}",
-            type: 'GET',
-            contentType: false,
-            processData: false,
-            success: function(response) {
-                var rak = "<option>--Pilih--</option>" ;
-                for(var i = 0; i < response.length; i++){
-                    rak += "<option value='"+response[i]["ID"]+"'>"+response[i]["NAME"] + "</option>";
-                } 
-                $('#selectLocation').append(rak);
-            }
-        });
-    }*/
+    $('#btnModifyRak').on('click', function(){
+        if($('#txtRak').val().trim() == ""){
+            alert('Nama rak tidak boleh kosong!');
+        } else {
+            $.ajax({
+                type: 'POST',
+                url: '{{ url("location/modify/location_shelf") }}' + '/' + $('#idRak').val(),
+                contentType: "application/json; charset=utf-8",
+                dataType: 'json',
+                headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                data: JSON.stringify({
+                    "name" : $('#txtRak').val()
+                }),
+                success: function(data) { 
+                },
+            });
+        }
+    });
+    $('#btnModifyAmbal').on('click', function(){
+        if($('#txtAmbal').val().trim() == ""){
+            alert('Nama ambal tidak boleh kosong!');
+        } else {
+            $.ajax({
+                type: 'POST',
+                url: '{{ url("location/modify/location_rugs") }}' + '/' + $('#idAmbal').val(),
+                contentType: "application/json; charset=utf-8",
+                dataType: 'json',
+                headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                data: JSON.stringify({
+                    "name" : $('#txtAmbal').val()
+                }),
+                success: function(data) { 
+                },
+            });
+        }
+    });
+    $('#btnTambahRak').on('click', function(){
+        if($('#selectLocation').val() == ""){
+            alert('Pilih lokasi lantai terlebih dulu!');
+        } else if($('#txtRak').val().trim() == ""){
+            alert('Mohon isi nama rak untuk menyimpan!');
+        } else {
+            $.ajax({
+                type: 'POST',
+                url: '{{ url("location/add/location_shelf") }}',
+                contentType: "application/json; charset=utf-8",
+                dataType: 'json',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                data: JSON.stringify({
+                    "name" : $('#txtRak').val(),
+                    "location_id" : $('#selectLocation').val()
+                }),
+                success: function(data) { 
+                    getSettingShelf();
+                    $('#selectRak').val(data["ID"]).trigger('change');
+                },
+            });
+        }
+    });
+    $('#btnTambahAmbal').on('click', function(){
+        if($('#selectRak').val() == ""){
+            alert('Pilih Rak terlebih dulu!');
+        } else if($('#txtAmbal').val().trim() == ""){
+            alert('Mohon isi nama ambal untuk menyimpan!');
+        } else {
+            $.ajax({
+                type: 'POST',
+                url: '{{ url("location/add/location_rugs") }}',
+                contentType: "application/json; charset=utf-8",
+                dataType: 'json',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                data: JSON.stringify({
+                    "name" : $('#txtAmbal').val(),
+                    "location_shelf_id" : $('#selectRak').val()
+                }),
+                success: function(data) { 
+                    getSettingRugs();
+                    $('#selectAmbal').val(data["ID"]).trigger('change');
+                },
+            });
+        }
+    });
     var getSetting = () => {
         $.getJSON("{{ url('setting/location') }}", function (res) {
                 data = [{
@@ -194,24 +270,108 @@
                 width: '100%',
                 data: data
             });
-            $('#selectLocation').val("{{$setting ? $setting->id : 0 }}").trigger('change'); 
         });
     }
-    getSetting();
+    $.when(
+        getSetting(),
+        getSettingShelf(),
+        getSettingRugs()
+    )
+    .done(function(first_call, second_call, third_call){
+        setSetting();
+    })
+    .fail(function(){
+        //handle errors
+    });
     $('#selectLocation').on('change', function(){
         $.ajax({
             type: 'POST',
             url: '{{ url("setting/location") }}',
+            contentType: "application/json; charset=utf-8",
+            dataType: 'json',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
-            data: {
-                "location_id":$(this).val()
+            data: JSON.stringify({
+                "location_id":$('#selectLocation').val(),
+                "location_name" : $('#selectLocation option:selected').text()
+            }),
+            success: function(data) { 
+                //alert('mengubah lokasi: ' + $('#selectLocation option:selected').text());  
             },
-            success: function(data) { alert('data: ' + data["Message"]); },
-            contentType: "application/json",
-            dataType: 'json'
         });
-    })
+    });
+    var getSettingShelf = () => {
+        $.getJSON('{{ url("setting/location-shelf/") }}' + '/'+ $('#selectLocation').val(), function (res) {
+                data = [{
+                    id: "",
+                    nama: "- Pilih Lokasi -",
+                    text: "- Pilih Lokasi -"
+                }].concat(res);
+            $("#selectRak").select2({
+                dropdownAutoWidth: true,
+                width: '100%',
+                data: data
+            });
+            getSettingRugs();
+        });
+    }
+    var setSetting = ()=> {
+            $('#selectLocation').val("{{$setting ? $setting->location_id : 0 }}").trigger('change'); 
+            $('#selectRak').val("{{$setting ? $setting->location_shelf_id : 0 }}").trigger('change'); 
+            $('#selectAmbal').val("{{$setting ? $setting->location_rugs_id : 0 }}").trigger('change');
+    };
+    $('#selectRak').on('change', function(){
+        $.ajax({
+            type: 'POST',
+            url: '{{ url("setting/location-shelf") }}',
+            contentType: "application/json; charset=utf-8",
+            dataType: 'json',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            data: JSON.stringify({
+                "location_shelf_id":$(this).val(),
+                "location_shelf_name":$('#selectRak option:selected').text()
+            }),
+            success: function(data) { 
+            },
+        });
+    });
+    var getSettingRugs = () => {
+        $.getJSON('{{ url("setting/location-rugs/") }}' + $('#selectRak').val(), function (res) {
+                data = [{
+                    id: "",
+                    nama: "- Pilih Lokasi -",
+                    text: "- Pilih Lokasi -"
+                }].concat(res);
+
+                        //implemen data ke select provinsi
+            $("#selectAmbal").select2({
+                dropdownAutoWidth: true,
+                width: '100%',
+                data: data
+            });
+            
+        });
+    }
+    $('#selectAmbal').on('change', function(){
+        $.ajax({
+            type: 'POST',
+            url: '{{ url("setting/location-rugs") }}',
+            contentType: "application/json; charset=utf-8",
+            dataType: 'json',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            data: JSON.stringify({
+                "location_rugs_id":$(this).val(),
+                "location_rugs_name":$('#selectAmbal option:selected').text()
+            }),
+            success: function(data) { 
+                //alert('mengubah ambal: ' + $('#selectAmbal option:selected').text()); 
+            },
+        });
+    });
 </script>
 @endsection

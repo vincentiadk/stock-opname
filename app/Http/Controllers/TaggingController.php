@@ -4,22 +4,15 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use App\Models\Setting;
 
 class TaggingController extends Controller
 {
-    protected $url;
-    protected $token;
-
-    public function __construct() 
-    {
-        $this->url = config('inlis.url');
-        $this->token = config('inlis.token');
-    }
     public function searchItem(Request $request)
     {
         try{
             $sql = "SELECT * FROM COLLECTIONS WHERE nomorbarcode='" . $request->input('barcode') ."'";
-            $res = Http::post($this->url ."?token=$this->token&op=getlistraw&sql=$sql");
+            $res = kurl("get","getlistraw", "", $sql, 'sql', '');
             $response = $res->json();
             if($response["Status"] == "Success") {
                 if(isset($response["Data"]["Items"][0])){
@@ -76,8 +69,10 @@ class TaggingController extends Controller
 
     public function index()
     {
-        return view('taggingNFC', [
-            'title' => 'Tagging'
+        $setting = Setting::where('user_id', session('user')['id'])->first();
+        return view('tagging', [
+            'title' => 'Tagging',
+            'setting' => $setting
         ]);
     }
 }

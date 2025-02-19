@@ -8,14 +8,6 @@ use Illuminate\Support\Facades\Http;
 
 class SettingController extends Controller
 {
-    protected $url;
-    protected $token;
-
-    public function __construct() 
-    {
-        $this->url = config('inlis.url');
-        $this->token = config('inlis.token');
-    }
     public function index()
     { 
         $setting = Setting::where('user_id', session('user')["id"])->first();
@@ -25,30 +17,14 @@ class SettingController extends Controller
         ]);
     }
 
-    public function add($table)
-    {
-
-    }
-
-    public function delete($table, $id)
-    {
-
-    }
-
-    public function modify($table, $id)
-    {
-        
-    }
-
     public function getLocation()
     {
         $sql = "SELECT ID,NAME FROM LOCATIONS where locationlibrary_id=1 ";
-        $data = Http::post($this->url ."?token=$this->token&op=getlistraw&sql=$sql")["Data"]["Items"];
-
+        $res = kurl("get","getlistraw", "", $sql, 'sql', '')["Data"]["Items"];
         $arr = [];
-        foreach($data as $d){
+        foreach($res as $d){
             array_push($arr, [
-                'id' => $d['NAME'],
+                'id' => $d['ID'],
                 'nama' => $d['NAME'],
                 'text'=>$d['NAME']
             ]);
@@ -57,28 +33,93 @@ class SettingController extends Controller
         return $arr;
     }
 
-    public function saveLocation()
+    public function saveLocation(Request $request)
     {
-        Setting::updateOrCreate([
-            'user_id' => session('user')['id']
-        ], [
-            'location_id' => request('location_id')
-        ]);
-        return response()->json([
-            "Message" => "Success"
-        ], 200);
+        try{
+            Setting::updateOrCreate([
+                'user_id' => session('user')['id']
+            ], [
+                'location_id' => $request->input('location_id'),
+                'location_name' => $request->input('location_name')
+            ]);
+            return response()->json([
+                "Message" => "Success"
+            ], 200);
+        } catch(\Exception $e ) {
+            return response()->json([
+                "Message" => $e->getMessage()
+            ], 500);
+        }
     }
+
     public function getLocationShelf($id)
     {
         $sql = "SELECT * FROM LOCATION_SHELF where location_id=$id ";
-        $res = Http::post($this->url ."?token=$this->token&op=getlistraw&sql=$sql");
-        return $res;
+        $res = kurl("get","getlistraw", "", $sql, 'sql', '')["Data"]["Items"];
+        $arr = [];
+        foreach($res as $d){
+            array_push($arr, [
+                'id' => $d['ID'],
+                'nama' => $d['NAME'],
+                'text'=>$d['NAME']
+            ]);
+        }
+       
+        return $arr;
+    }
+
+    public function saveLocationShelf(Request $request)
+    {
+        \Log::info($request->all());
+        try{
+            Setting::updateOrCreate([
+                'user_id' => session('user')['id']
+            ], [
+                'location_shelf_id' => $request->input('location_shelf_id'),
+                'location_shelf_name' => $request->input('location_shelf_name')
+            ]);
+            return response()->json([
+                "Message" => "Success"
+            ], 200);
+        } catch(\Exception $e ) {
+            return response()->json([
+                "Message" => $e->getMessage()
+            ], 500);
+        }
     }
 
     public function getLocationRugs($id)
     {
-        $sql = "SELECT * FROM LOCATION_RUGS where location_shelf_id=$id ";
-        $res = Http::post($this->url ."?token=$this->token&op=getlistraw&sql=$sql");
-        return $res;
+        $sql = "SELECT ID, NAME FROM LOCATION_RUGS where location_shelf_id=$id ";
+        $res = kurl("get","getlistraw", "", $sql, 'sql', '')["Data"]["Items"];
+        $arr = [];
+        foreach($res as $d){
+            array_push($arr, [
+                'id' => $d['ID'],
+                'nama' => $d['NAME'],
+                'text'=>$d['NAME']
+            ]);
+        }
+       
+        return $arr;
+    }
+
+    public function saveLocationRugs(Request $request)
+    {
+        try{
+            Setting::updateOrCreate([
+                'user_id' => session('user')['id']
+            ], [
+                'location_rugs_id' => $request->input('location_rugs_id'),
+                'location_rugs_name' => $request->input('location_rugs_name')
+            ]);
+            return response()->json([
+                "Message" => "Success"
+            ], 200);
+        } catch(\Exception $e ) {
+            return response()->json([
+                "Message" => $e->getMessage()
+            ], 500);
+        }
     }
 }

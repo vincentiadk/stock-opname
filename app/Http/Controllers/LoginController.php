@@ -7,14 +7,15 @@ use Illuminate\Support\Facades\Http;
 
 class LoginController extends Controller
 {
-    protected $url;
-    protected $token;
+    protected $url ;
+    protected $token ;
 
-    public function __construct() 
+    public function _construct()
     {
-        $this->url = config('inlis.url');
-        $this->token = config('inlis.token');
+        $this->url =  config('inlis.url');
+        $this->token =  config('inlis.token');
     }
+
     public function index()
     {
         if (session('user') == null) {

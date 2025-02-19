@@ -2,8 +2,12 @@
 @section('content')
 <div class="form-links mt-2 mb-2">
     <div>
-        Lokasi : <a href="{{ url('/setting') }}">Lantai 4A, Rak A02, Ambal 01<label id="lblLokasi"></label> </a>
+        @if($setting)
+        Lokasi : <a href="{{ url('/setting') }}">{{ $setting->location_name }}, {{ $setting->location_shelf_name }}, {{ $setting->location_rugs_name }}<label id="lblLokasi"></label> </a>
         <a href="{{ url('/setting') }}" class="btn btn-primary btn-sm">Ganti lokasi</a>
+        @else
+        Anda belum mengatur lokasi. <a href="{{ url('/setting') }}" class="btn btn-primary btn-sm">Atur lokasi</a>
+        @endif
     </div>
 </div>
 <div id="reader"></div>
