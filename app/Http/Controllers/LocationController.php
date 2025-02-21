@@ -102,13 +102,46 @@ class LocationController extends Controller
         try{
             switch($table){
                 case 'location_shelf' : 
-                    $sql = "DELETE FROM location_shelf where id = $id  ";
+                    $res =  Http::post($this->url ."?token=" . $this->token."&id=$id&op=delete&table=LOCATION_SHELF&deleteby=" . session('user')['username'] . "&terminal=" . \Request::ip());
+                    if($res["Status"] == "Success"){
+                        Setting::updateOrCreate([
+                            'user_id' => session('user')['id']
+                        ], [
+                            'location_shelf_id' => null,
+                            'location_shelf_name' => null,
+                            'location_rugs_id' => null,
+                            'location_rugs_name' => null
+                        ]);
+                        return response()->json([
+                            "Message" => "Success",
+                        ], 200);
+                    } else {
+                        return response()->json([
+                            "Message" => $res["Message"],
+                        ], 500);
+                    }
                     break;
                 case 'location_rugs' : 
-                    $sql = "DELETE FROM location_rugs where id = $id  ";
+                    $res =  Http::post($this->url ."?token=" . $this->token."&id=$id&op=delete&table=LOCATION_RUGS&deleteby=" . session('user')['username'] . "&terminal=" . \Request::ip());
+                    if($res["Status"] == "Success"){
+                        Setting::updateOrCreate([
+                            'user_id' => session('user')['id']
+                        ], [
+                            'location_rugs_id' => null,
+                            'location_rugs_name' => null
+                        ]);
+                        return response()->json([
+                            "Message" => "Success",
+                        ], 200);
+                    } else {
+                        return response()->json([
+                            "Message" => $res["Message"], 
+                        ], 500);
+                    }
                     break;
                 default:break;
             }
+            
         }catch(\Exception $e ) {
             return response()->json([
                 "Message" => $e->getMessage()
