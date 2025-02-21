@@ -7,10 +7,10 @@ use Illuminate\Support\Facades\Http;
 
 class LoginController extends Controller
 {
-    protected $url ;
-    protected $token ;
+    public $url ;
+    public $token ;
 
-    public function _construct()
+    public function __construct()
     {
         $this->url =  config('inlis.url');
         $this->token =  config('inlis.token');

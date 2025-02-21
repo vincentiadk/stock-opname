@@ -7,6 +7,9 @@
         <div class="item">
             <div class="in">
                 <select class="form-control select2" id="selectLocation" name="location">
+                    @foreach($locations as $l)
+                        <option value="{{$l['id']}}" @if($l["id"] == $setting->location_id) selected @endif> {{$l['text']}}</option>
+                    @endforeach
                 </select>
             </div>
         </div>
@@ -19,7 +22,10 @@
     <li>
         <div class="item">
             <div class="in">
-                <select class="form-control" id="selectRak" name="rak">
+                <select class="form-control select2" id="selectRak" name="rak">
+                    @foreach($location_shelf as $ls)
+                        <option value="{{$ls['id']}}" @if($ls["id"] == $setting->location_shelf_id) selected @endif> {{$ls['text']}}</option>
+                    @endforeach
                 </select>
             </div>
         </div>
@@ -51,7 +57,10 @@
     <li>
         <div class="item">
             <div class="in">
-                <select class="form-control" id="selectAmbal" name="ambal">
+                <select class="form-control select2" id="selectAmbal" name="ambal">
+                    @foreach($location_rugs as $lr)
+                        <option value="{{$lr['id']}}" @if($lr["id"] == $setting->location_rugs_id) selected @endif> {{$lr['text']}}</option>
+                    @endforeach
                 </select>
             </div>
         </div>
@@ -146,6 +155,9 @@
 @section('script')
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
+    var location_id = "{{ $setting->location_id}}";
+    var location_shelf_id = "{{ $setting->location_shelf_id}}";
+    var location_rugs_id = "{{ $setting->location_rugs_id}}";
     $('#hapusRak').on('click', function(){
         if(confirm('Anda yakin akan menghapus rak nomor ' + $('#selectRak option:selected').text() + '?')){
             //do something
@@ -157,17 +169,17 @@
         }
     });
     $('#editRak').on('click', function(){
-        let rak_value = $('#selectRak option:selected').val();
+        let rak_value = $('#selectRak option:selected').text();
         $('#txtRakEdit').val(rak_value);
         $('#idRak').val($('#selectRak').val());
     });
     $('#editAmbal').on('click', function(){
-        let ambal_value = $('#selectAmbal option:selected').val();
+        let ambal_value = $('#selectAmbal option:selected').text();
         $('#txtAmbalEdit').val(ambal_value);
         $('#idAmbal').val($('#selectAmbal').val());
     });
     $('#btnModifyRak').on('click', function(){
-        if($('#txtRak').val().trim() == ""){
+        if($('#txtRakEdit').val().trim() == ""){
             alert('Nama rak tidak boleh kosong!');
         } else {
             $.ajax({
@@ -179,15 +191,22 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
                 data: JSON.stringify({
-                    "name" : $('#txtRak').val()
+                    "name" : $('#txtRakEdit').val(),
+                    "location_id" : location_id
                 }),
-                success: function(data) { 
+                success: function(data) {
+                    $('#selectRak option[value="'+$('#idRak').val()+'"]').text($('#txtRakEdit').val());
+                    $('#selectRak').select2('destroy').select2();
+                    $('#txtRakEdit').val(''); 
                 },
+                error: function(data){
+                    alert(data.responseJSON.Message);
+                }
             });
         }
     });
     $('#btnModifyAmbal').on('click', function(){
-        if($('#txtAmbal').val().trim() == ""){
+        if($('#txtAmbalEdit').val().trim() == ""){
             alert('Nama ambal tidak boleh kosong!');
         } else {
             $.ajax({
@@ -199,10 +218,18 @@
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                 },
                 data: JSON.stringify({
-                    "name" : $('#txtAmbal').val()
+                    "name" : $('#txtAmbalEdit').val(),
+                    "location_shelf_id" : location_shelf_id,
+                    "location_id" : location_id
                 }),
                 success: function(data) { 
+                    $('#selectAmbal option[value="'+$('#idAmbal').val()+'"]').text($('#txtAmbalEdit').val());
+                    $('#selectAmbal').select2('destroy').select2();
+                    $('#txtAmbalEdit').val(''); 
                 },
+                error: function(data){
+                    alert(data.responseJSON.Message);
+                }
             });
         }
     });
@@ -222,12 +249,16 @@
                 },
                 data: JSON.stringify({
                     "name" : $('#txtRak').val(),
-                    "location_id" : $('#selectLocation').val()
+                    "location_id" : location_id
                 }),
                 success: function(data) { 
-                    getSettingShelf();
-                    $('#selectRak').val(data["ID"]).trigger('change');
+                    $('#txtRak').val('');
+                    location_shelf_id = data["ID"];
+                    getSettingShelf(data["ID"]);
                 },
+                error: function(data){
+                    alert(data.responseJSON.Message);
+                }
             });
         }
     });
@@ -247,15 +278,21 @@
                 },
                 data: JSON.stringify({
                     "name" : $('#txtAmbal').val(),
-                    "location_shelf_id" : $('#selectRak').val()
+                    "location_shelf_id" : $('#selectRak').val(),
+                    "location_id" : $('#selectLocation').val()
                 }),
                 success: function(data) { 
-                    getSettingRugs();
-                    $('#selectAmbal').val(data["ID"]).trigger('change');
+                    $('#txtAmbal').val('');
+                    location_rugs_id = data["ID"];
+                    getSettingRugs(data["ID"]);
                 },
+                error: function(data){
+                    alert(data.responseJSON.Message);
+                }
             });
         }
     });
+
     var getSetting = () => {
         $.getJSON("{{ url('setting/location') }}", function (res) {
                 data = [{
@@ -272,36 +309,29 @@
             });
         });
     }
-    $.when(
-        getSetting(),
-        getSettingShelf(),
-        getSettingRugs()
-    )
-    .done(function(first_call, second_call, third_call){
-        setSetting();
-    })
-    .fail(function(){
-        //handle errors
+    $('#selectLocation').select2().on('select2:close', function(){
+        if(location_id != $('#selectLocation').val()){
+            $.ajax({
+                type: 'POST',
+                url: '{{ url("setting/location") }}',
+                contentType: "application/json; charset=utf-8",
+                dataType: 'json',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                data: JSON.stringify({
+                    "location_id":$('#selectLocation').val(),
+                    "location_name" : $('#selectLocation option:selected').text()
+                }),
+                success: function(data) { 
+                    location_id =  $('#selectLocation').val();
+                    getSettingShelf(null); 
+                },
+            });
+        }
     });
-    $('#selectLocation').on('change', function(){
-        $.ajax({
-            type: 'POST',
-            url: '{{ url("setting/location") }}',
-            contentType: "application/json; charset=utf-8",
-            dataType: 'json',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            data: JSON.stringify({
-                "location_id":$('#selectLocation').val(),
-                "location_name" : $('#selectLocation option:selected').text()
-            }),
-            success: function(data) { 
-                //alert('mengubah lokasi: ' + $('#selectLocation option:selected').text());  
-            },
-        });
-    });
-    var getSettingShelf = () => {
+    var getSettingShelf = (value) => {
+        $('#selectRak').empty();
         $.getJSON('{{ url("setting/location-shelf/") }}' + '/'+ $('#selectLocation').val(), function (res) {
                 data = [{
                     id: "",
@@ -313,65 +343,70 @@
                 width: '100%',
                 data: data
             });
-            getSettingRugs();
+            if(value != null){
+                $('#selectRak').val(value).trigger('change');
+                getSettingRugs(null);
+            }
         });
     }
-    var setSetting = ()=> {
-            $('#selectLocation').val("{{$setting ? $setting->location_id : 0 }}").trigger('change'); 
-            $('#selectRak').val("{{$setting ? $setting->location_shelf_id : 0 }}").trigger('change'); 
-            $('#selectAmbal').val("{{$setting ? $setting->location_rugs_id : 0 }}").trigger('change');
-    };
-    $('#selectRak').on('change', function(){
-        $.ajax({
-            type: 'POST',
-            url: '{{ url("setting/location-shelf") }}',
-            contentType: "application/json; charset=utf-8",
-            dataType: 'json',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            data: JSON.stringify({
-                "location_shelf_id":$(this).val(),
-                "location_shelf_name":$('#selectRak option:selected').text()
-            }),
-            success: function(data) { 
-            },
-        });
+    $('#selectRak').select2().on('select2:close', function(){
+        if(location_shelf_id != $('#selectRak').val()){
+            $.ajax({
+                type: 'POST',
+                url: '{{ url("setting/location-shelf") }}',
+                contentType: "application/json; charset=utf-8",
+                dataType: 'json',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                data: JSON.stringify({
+                    "location_shelf_id":$(this).val(),
+                    "location_shelf_name":$('#selectRak option:selected').text()
+                }),
+                success: function(data) { 
+                    location_shelf_id =  $('#selectRak').val();
+                    getSettingRugs(null);
+                },
+            });
+        }
     });
-    var getSettingRugs = () => {
-        $.getJSON('{{ url("setting/location-rugs/") }}' + $('#selectRak').val(), function (res) {
+    var getSettingRugs = (value) => {
+        $('#selectAmbal').empty();
+        $.getJSON('{{ url("setting/location-rugs") }}' + '/'+ $('#selectRak').val(), function (res) {
                 data = [{
                     id: "",
                     nama: "- Pilih Lokasi -",
                     text: "- Pilih Lokasi -"
                 }].concat(res);
-
-                        //implemen data ke select provinsi
             $("#selectAmbal").select2({
                 dropdownAutoWidth: true,
                 width: '100%',
                 data: data
             });
-            
+            if(value != null){
+                $('#selectAmbal').val(value).trigger('change');
+            }
         });
     }
-    $('#selectAmbal').on('change', function(){
-        $.ajax({
-            type: 'POST',
-            url: '{{ url("setting/location-rugs") }}',
-            contentType: "application/json; charset=utf-8",
-            dataType: 'json',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            data: JSON.stringify({
-                "location_rugs_id":$(this).val(),
-                "location_rugs_name":$('#selectAmbal option:selected').text()
-            }),
-            success: function(data) { 
-                //alert('mengubah ambal: ' + $('#selectAmbal option:selected').text()); 
-            },
-        });
+    $('#selectAmbal').select2().on('select2:close', function(){
+        if(location_rugs_id != $('#selectAmbal').val()){
+            $.ajax({
+                type: 'POST',
+                url: '{{ url("setting/location-rugs") }}',
+                contentType: "application/json; charset=utf-8",
+                dataType: 'json',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                data: JSON.stringify({
+                    "location_rugs_id":$(this).val(),
+                    "location_rugs_name":$('#selectAmbal option:selected').text()
+                }),
+                success: function(data) { 
+                    location_rugs_id = $('#selectAmbal').val();
+                },
+            });
+        }
     });
 </script>
 @endsection

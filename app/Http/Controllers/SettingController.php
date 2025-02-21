@@ -11,9 +11,20 @@ class SettingController extends Controller
     public function index()
     { 
         $setting = Setting::where('user_id', session('user')["id"])->first();
+        $location = $this->getLocation();  $locationShelf = []; $locationRugs = [];
+        if($setting->location_id){
+            $locationShelf = $this->getLocationShelf($setting->location_id);
+        }
+        if($setting->location_shelf_id){
+            $locationRugs = $this->getLocationRugs($setting->location_shelf_id);
+        }
         return view('setting', [
             'title' => 'Setting',
             'setting' => $setting,
+            'locations' => $location,
+            'location_rugs' => $locationRugs,
+            'location_shelf' => $locationShelf
+
         ]);
     }
 
@@ -40,7 +51,9 @@ class SettingController extends Controller
                 'user_id' => session('user')['id']
             ], [
                 'location_id' => $request->input('location_id'),
-                'location_name' => $request->input('location_name')
+                'location_name' => $request->input('location_name'),
+                'location_shelf_id' => null,
+                'location_shelf_name' => null
             ]);
             return response()->json([
                 "Message" => "Success"
@@ -70,13 +83,14 @@ class SettingController extends Controller
 
     public function saveLocationShelf(Request $request)
     {
-        \Log::info($request->all());
         try{
             Setting::updateOrCreate([
                 'user_id' => session('user')['id']
             ], [
                 'location_shelf_id' => $request->input('location_shelf_id'),
-                'location_shelf_name' => $request->input('location_shelf_name')
+                'location_shelf_name' => $request->input('location_shelf_name'),
+                'location_rugs_id' => null,
+                'location_rugs_name' => null
             ]);
             return response()->json([
                 "Message" => "Success"
