@@ -12,10 +12,14 @@ use App\Http\Middleware\ProtectLoginMiddleware;
 Route::get('/login', [LoginController::class, 'index']);
 Route::get('/', [LoginController::class, 'index']);
 Route::post('/login', [LoginController::class, 'submit']);
+Route::get('/logout', [LoginController::class, 'logout']);
 Route::group(['middleware' => ProtectLoginMiddleware::class], function () {
     Route::get('/tagging', [TaggingController::class, 'index']);
     Route::get('/tagging/search', [TaggingController::class, 'searchItem']);
-    Route::get('/tagging/save', [TaggingController::class, 'save']);
+    Route::post('/tagging/save', [TaggingController::class, 'save']);
+    Route::post('/tagging/save-masalah', [TaggingController::class, 'saveMasalah']);
+    Route::post('/tagging/save-not-found', [TaggingController::class, 'saveNotFound']);
+    Route::post('/tagging/save-lepas-tagging', [TaggingController::class, 'saveLepasTagging']);
 
     Route::get('/setting', [SettingController::class, 'index']);
     Route::get('/setting/location', [SettingController::class, 'getLocation']);
@@ -24,6 +28,8 @@ Route::group(['middleware' => ProtectLoginMiddleware::class], function () {
     Route::post('/setting/location-shelf', [SettingController::class, 'saveLocationShelf']);
     Route::get('/setting/location-rugs/{id}', [SettingController::class, 'getLocationRugs']);
     Route::post('/setting/location-rugs', [SettingController::class, 'saveLocationRugs']);
+    Route::get('/setting/stockopname', [SettingController::class, 'getStockopname']);
+    Route::post('/setting/stockopname', [SettingController::class, 'saveStockopname']);
 
     Route::post('/location/add/{table}', [LocationController::class, 'add']);
     Route::post('/location/delete/{table}/{id}', [LocationController::class, 'delete']);

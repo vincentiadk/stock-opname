@@ -22,12 +22,18 @@
                 <thead>
                     <tr>
                         <th scope="col">Periode</th>
-                        <th scope="col">Jumlah</th>
+                        <th scope="col">Total</th>
+                        <th scope="col">Ditagging</th>
+                        <th scope="col">Masalah Metadata</th>
+                        <th scope="col">Tidak ditemukan</th>    
                     </tr>
                 </thead>
                 <tfooter>
                     <tr>
                         <th scope="col">Total</th>
+                        <th scope="col"></th>
+                        <th scope="col"></th>
+                        <th scope="col"></th>
                         <th scope="col"></th>
                     </tr>
                 </tfooter>

@@ -1,12 +1,28 @@
 @extends('layouts.index')
 @section('content')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<div class="listview-title mt-2">Project Stock Opname</div>
+<ul class="listview image-listview text inset">
+    <li>
+        <div class="item">
+            <div class="in">
+                <select class="form-control select2" id="selectStockOpname" name="stockopname">
+                    <option value="">--Pilih Project Stock Opname--</option>
+                    @foreach($stockopname as $s)
+                        <option value="{{$s['id']}}" @if($s["id"] == $setting->stockopname_id) selected @endif> {{$s['text']}}</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+    </li>
+</ul>
 <div class="listview-title mt-2">Lokasi Default</div>
 <ul class="listview image-listview text inset">
     <li>
         <div class="item">
             <div class="in">
                 <select class="form-control select2" id="selectLocation" name="location">
+                    <option value="">--Pilih Lokasi--</option>
                     @foreach($locations as $l)
                         <option value="{{$l['id']}}" @if($l["id"] == $setting->location_id) selected @endif> {{$l['text']}}</option>
                     @endforeach
@@ -23,6 +39,7 @@
         <div class="item">
             <div class="in">
                 <select class="form-control select2" id="selectRak" name="rak">
+                <option value="">--Pilih Rak--</option>
                     @foreach($location_shelf as $ls)
                         <option value="{{$ls['id']}}" @if($ls["id"] == $setting->location_shelf_id) selected @endif> {{$ls['text']}}</option>
                     @endforeach
@@ -58,6 +75,7 @@
         <div class="item">
             <div class="in">
                 <select class="form-control select2" id="selectAmbal" name="ambal">
+                <option value="">--Pilih Ambal--</option>
                     @foreach($location_rugs as $lr)
                         <option value="{{$lr['id']}}" @if($lr["id"] == $setting->location_rugs_id) selected @endif> {{$lr['text']}}</option>
                     @endforeach
@@ -158,6 +176,7 @@
     var location_id = "{{ $setting->location_id}}";
     var location_shelf_id = "{{ $setting->location_shelf_id}}";
     var location_rugs_id = "{{ $setting->location_rugs_id}}";
+    var stockopname_id = "{{ $setting->stockopname_id}}";
     $('#hapusRak').on('click', function(){
         if(confirm('Anda yakin akan menghapus rak nomor ' + $('#selectRak option:selected').text() + '?')){
             //do something
@@ -292,13 +311,32 @@
             });
         }
     });
-
+    $('#selectStockOpname').select2().on('select2:close', function(){
+        if(stockopname_id != $('#selectStockOpname').val()){
+            $.ajax({
+                type: 'POST',
+                url: '{{ url("setting/stockopname") }}',
+                contentType: "application/json; charset=utf-8",
+                dataType: 'json',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                data: JSON.stringify({
+                    "stockopname_id":$('#selectStockOpname').val(),
+                    "stockopname_name" : $('#selectStockOpname option:selected').text()
+                }),
+                success: function(data) { 
+                    stockopname_id =  $('#selectStockOpname').val();
+                },
+            });
+        }
+    });
     var getSetting = () => {
         $.getJSON("{{ url('setting/location') }}", function (res) {
                 data = [{
                     id: "",
-                    nama: "- Pilih Lokasi -",
-                    text: "- Pilih Lokasi -"
+                    nama: "--Pilih Lokasi--",
+                    text: "--Pilih Lokasi--"
                 }].concat(res);
 
                         //implemen data ke select provinsi
@@ -335,8 +373,8 @@
         $.getJSON('{{ url("setting/location-shelf/") }}' + '/'+ $('#selectLocation').val(), function (res) {
                 data = [{
                     id: "",
-                    nama: "- Pilih Lokasi -",
-                    text: "- Pilih Lokasi -"
+                    nama: "--Pilih Rak--",
+                    text: "--Pilih Rak--"
                 }].concat(res);
             $("#selectRak").select2({
                 dropdownAutoWidth: true,
@@ -375,8 +413,8 @@
         $.getJSON('{{ url("setting/location-rugs") }}' + '/'+ $('#selectRak').val(), function (res) {
                 data = [{
                     id: "",
-                    nama: "- Pilih Lokasi -",
-                    text: "- Pilih Lokasi -"
+                    nama: "--Pilih Ambal--",
+                    text: "--Pilih Ambal--"
                 }].concat(res);
             $("#selectAmbal").select2({
                 dropdownAutoWidth: true,

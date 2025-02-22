@@ -4,18 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-
-class LoginController extends Controller
+use App\Models\Setting;
+class LoginController extends BaseController
 {
-    public $url ;
-    public $token ;
-
-    public function __construct()
-    {
-        $this->url =  config('inlis.url');
-        $this->token =  config('inlis.token');
-    }
-
     public function index()
     {
         if (session('user') == null) {
@@ -35,8 +26,12 @@ class LoginController extends Controller
             session([
                 'user' => [
                     'id' => $id,
-                    'username' => $username
+                    'username' => $username,
                 ]]);
+
+            $setting = Setting::updateOrCreate(['user_id'=>$id])->refresh();
+
+            session(['setting' => $setting->toArray()]);
             return redirect('/tagging');
         } else{
             return response()->json([
@@ -44,5 +39,11 @@ class LoginController extends Controller
                 "Message" => $user["Message"]
             ], 500);
         }
+    }
+
+    public function logout()
+    {
+        session()->flush();
+        return redirect('/login');
     }
 }

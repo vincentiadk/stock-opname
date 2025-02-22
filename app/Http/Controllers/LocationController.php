@@ -6,16 +6,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use App\Models\Setting;
 
-class LocationController extends Controller
+class LocationController extends BaseController
 {
-    protected $url ;
-    protected $token ;
-
-    public function __construct()
-    {
-        $this->url =  config('inlis.url');
-        $this->token =  config('inlis.token');
-    }
     public function add(Request $request, $table)
     {
         try{
@@ -68,8 +60,8 @@ class LocationController extends Controller
                             Setting::updateOrCreate([
                                 'user_id' => session('user')['id']
                             ], [
-                                'location_rug_id' => $res['Data']['ID'],
-                                'location_rug_name' => $request->input('name')
+                                'location_rugs_id' => $res['Data']['ID'],
+                                'location_rugs_name' => $request->input('name')
                             ]);
                             return response()->json([
                                 "Message" => "Success",
