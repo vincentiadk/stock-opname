@@ -31,10 +31,12 @@
 @section('script')
 <script src="{{ asset('datatables.bundle.js') }}"></script>
 <script src="{{ asset('html5-qrcode.js') }}"></script>
+<script src="{{ asset('assets/js/jquery.ui.sound.js')}}"></script>
 <script>
     const html5QrCode = new Html5Qrcode("reader");
 
     const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+        $(this).uiSound({play: "success"});
         $('#qrcode').val(decodedText);
         loadDataTable();
         html5QrCode.stop();

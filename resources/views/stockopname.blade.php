@@ -44,11 +44,13 @@
     </div>
 </div>
 <div id="reader"></div>
+<div class="section">
 <div class="form-group">
             <h3 class="text-center">Daftar Barcode / RFID</h3>
             <textarea id="txtTags" placeholder="Barcode / RFID yang berhasil di scan akan muncul pada area berikut ini" readonly rows="5" class="form-control" style="background-color:#fff"></textarea>
-            <span class="btn btn-primary btn-block btn-lg" id="btnSimpan">Simpan Tagging</span>
-        </div>
+            <span class="btn btn-primary btn-block btn-lg" id="btnSimpan">Simpan Data</span>
+</div>
+</div>
 @endsection
 
 @section('script')
