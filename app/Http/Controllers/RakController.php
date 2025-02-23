@@ -19,15 +19,27 @@ class RakController extends Controller
         $length = $request->input('length');
         $search = $request->input('search.value');
         $where = "";
+        $qrcode = $request->input('qrcode');
+        $qrs  = explode("-",$qrcode);
+        $location_id = $qrs[0];
+        $location_shelf_id = $qrs[1]?  $qrs[1] : 0;
+        $location_rugs_id = $qrs[2]?  $qrs[2] : 0;
         $end = $start + $length;
-        $sql = "SELECT * from collections where location_id = 341 ";
-        $sqlFiltered = "SELECT 1 from collections where location_id = 341 ";
+
+        if($location_shelf_id != 0){
+            $where .= " AND location_shelf_id  = '$location_shelf_id' ";
+        }
+        if($location_rugs_id != 0){
+            $where .= " AND location_rugs_id  = '$location_rugs_id' ";
+        }
+        $sql = "SELECT * from collections where location_id = '$location_id' $where";
+        $sqlFiltered = "SELECT 1 from collections where location_id = '$location_id' $where";
        
         if($request->input('location_id') !=''){
             $where .= " AND location_id = '".$request->input('location_id')."'";
         }
 
-        $totalData = kurl("get","getlistraw", "", "SELECT COUNT(1) JUMLAH  from collections where location_id = 341 ", 'sql', '')["Data"]["Items"][0]["JUMLAH"];
+        $totalData = kurl("get","getlistraw", "", "SELECT COUNT(1) JUMLAH  from collections where location_id = '$location_id' $where ", 'sql', '')["Data"]["Items"][0]["JUMLAH"];
         if($length == '-1'){
             $end = $totalData;
         }

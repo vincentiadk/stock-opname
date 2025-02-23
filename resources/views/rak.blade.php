@@ -3,15 +3,16 @@
 <link rel="stylesheet" href="{{ asset('datatables.bundle.css') }}" />
 <div class="form-links mt-2 mb-2">
     <div>
-        Scan QR Code untuk mendapatkan data rak
+        Scan QR Code untuk mendapatkan data koleksi <span class="btn btn-primary" id="scanQR" style="display:none">Scan ulang</span>
     </div>
 </div>
 <div id="reader"></div>
+<input type="hidden" id="qrcode" />
 <div class="section mt-2">
     <div class="section-title">Data Koleksi</div>
     <div class="card">
         <div class="table-responsive">
-            <table class="table table-striped" id="table">
+            <table class="table table-striped" id="table" style="font-size:7pt">
                 <thead>
                     <tr>
                         <th scope="col">Judul</th>
@@ -34,11 +35,10 @@
     const html5QrCode = new Html5Qrcode("reader");
 
     const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-
-        $('#barcode').val(decodedText);
+        $('#qrcode').val(decodedText);
         loadDataTable();
         html5QrCode.stop();
-
+        $('#scanQR').css('display', 'block');
         /*return $.get("{{ url('collection/search') }}" + '?barcode=' + decodedText, function (response) {
             if (response["Status"] == "Success") {
                 let data = response["Data"];
@@ -53,6 +53,9 @@
             }
         });*/
     };
+    $('#scanQR').on('click', function(){
+        qrCodeDisplay(config);
+    });
     const config = { fps: 10, qrbox: { width: 200, height: 200 } };
     const qrCodeDisplay = (config) => {
         html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
@@ -68,22 +71,6 @@
     });
 
     var loadDataTable = function(){
-		//let selectParameter = $('select[name="selectParameter"] option:selected').map(function() {
-		//									return $(this).val();
-		//								}).get();
-		//let searchValue = $('input[type="text"][name="searchValue[]"').get().map(function takeValue(input) {
-		//							return input.value;
-		//						});
-		//let advSearch = [];
-		//
-		//for(var i = 0; i < selectParameter.length; i++){
-		//	if(searchValue.length > 0) {
-		//		advSearch.push({
-		//			'param' : selectParameter[i],
-		//			'value' : searchValue[i]
-		//			})
-		//	}
-		//}
 		t = new DataTable('#table', {
 			scrollX: true,
 			processing: true,
@@ -98,18 +85,13 @@
 			],
 			ajax: {
 				url: '{{ url("rak/datatable") }}',
-				/*data: {
-					advSearch : advSearch,
-					jenisTerbitan: $('#selectJenis').val(),
-					kdtValid : $('#selectKdt').val(),
-					statusKckr : $('#selectKckr').val(),
-					sumber : $('#selectSumber').val(),
-					jenisMedia : $('#selectJenisMedia').val(),
-					penerbit : group == p_id ? p_id : $('#selectPenerbit').val() ,
-				}*/
+				data: {
+					qrcode: $('#qrcode').val()
+
+				}
 			},
 		});
 	};
-    loadDataTable();
+    //loadDataTable();
 </script>
 @endsection
