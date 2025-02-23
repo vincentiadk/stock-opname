@@ -10,16 +10,28 @@ class TaggingController extends BaseController
     public function searchItem(Request $request)
     {
         try {
-            $sql = "SELECT Title, noinduk, noinduk_deposit, noinduk, collections.nomorbarcode, locations.name as location_name,
+            if($request->input('type') == 'barcode') {
+                $sql = "SELECT Title, noinduk, noinduk_deposit, noinduk, collections.nomorbarcode, locations.name as location_name,
                         location_rugs.name as location_rugs_name, location_shelf.name as location_shelf_name,
                         collections.location_id, collections.location_shelf_id, collections.location_rugs_id, collections.id as colid, s.problem
                         FROM COLLECTIONS
                         left join locations on locations.id = collections.location_id
                         left join location_shelf on location_shelf.id = collections.location_shelf_id
                         left join location_rugs on location_rugs.id = collections.location_rugs_id  
-                        left join stockopnamedetail s on collections.id = s.collectionid WHERE collections.nomorbarcode = '" . trim($request->input('barcode')) . "' 
-                        ";
-            //\Log::info($sql);
+                        left join stockopnamedetail s on collections.id = s.collectionid WHERE collections.nomorbarcode = '" . trim($request->input('value')) . "'";
+            } else {
+                $sql = "SELECT rc.serial_number, c.rfid, c.Title, c.noinduk, c.noinduk_deposit, locations.name as location_name,
+                    location_rugs.name as location_rugs_name, location_shelf.name as location_shelf_name,
+                    c.location_id, c.location_shelf_id, c.location_rugs_id, c.id as colid, s.problem
+                    FROM RFID_COLLECTIONS rc
+                    left join collections c on c.rfid = rc.rfid_no
+                    left join locations on locations.id = c.location_id
+                    left join location_shelf on location_shelf.id = c.location_shelf_id
+                    left join location_rugs on location_rugs.id = c.location_rugs_id  
+                    left join stockopnamedetail s on c.id = s.collectionid WHERE
+                    rc.serial_number = '" . trim($request->input('value')) . "'";
+            }
+
             $res = kurl("get", "getlistraw", "", $sql, 'sql', '');
             if ($res["Status"] == "Success") {
                 if (isset($res["Data"]["Items"][0])) {
@@ -34,7 +46,7 @@ class TaggingController extends BaseController
                     return response()->json(
                         [
                             "Status"  => "Error",
-                            "Message" => "Barcode " . $request->input('barcode') . " tidak ditemukan",
+                            "Message" => strtoupper($request->input('type')) .': '. $request->input('value') . " tidak ditemukan",
                         ]
                     );
                 }
@@ -42,7 +54,7 @@ class TaggingController extends BaseController
             } else {
                 return response()->json([
                     "Status"  => "Error",
-                    "Message" => $request->input('barcode') . " tidak ditemukan",
+                    "Message" => strtoupper($request->input('type')) .': '. $request->input('value') . " tidak ditemukan",
                 ], 500);
             }
         } catch (\Exception $e) {
@@ -61,7 +73,7 @@ class TaggingController extends BaseController
             $stockopnamebefore = [
                 ["name" => "STOCKOPNAMEID", "Value" => $setting->stockopname_id],
                 ["name" => "COLLECTIONID", "Value" => request('id')],
-                ["name" => "NOMORBARCODE", "Value" => request('barcode')],   
+                ["name" => "NOMORBARCODE", "Value" => request('value')],   
             ];
             $so_masalah = array_merge($stockopnamebefore, [
                 ["name" => "problem", "Value" => "metadata"],
@@ -148,7 +160,7 @@ class TaggingController extends BaseController
             $stockopnamebefore = [
                 ["name" => "STOCKOPNAMEID", "Value" => $setting->stockopname_id],
                 ["name" => "COLLECTIONID", "Value" => request('id')],
-                ["name" => "NOMORBARCODE", "Value" => request('barcode')],
+                ["name" => "NOMORBARCODE", "Value" => request('value')],
             ];
 
             $so_masalah = array_merge($stockopnamebefore, [
@@ -228,7 +240,7 @@ class TaggingController extends BaseController
             $setting           = Setting::where('user_id', session('user')['id'])->first();
             $stockopnamebefore = [
                 ["name" => "STOCKOPNAMEID", "Value" => $setting->stockopname_id],
-                ["name" => "NOMORBARCODE", "Value" => request('barcode')],
+                ["name" => "NOMORBARCODE", "Value" => request('value')],
             ];
 
             
@@ -275,7 +287,7 @@ class TaggingController extends BaseController
             $setting           = Setting::where('user_id', session('user')['id'])->first();
             $stockopnamebefore = [
                 ["name" => "STOCKOPNAMEID", "Value" => $setting->stockopname_id],
-                ["name" => "NOMORBARCODE", "Value" => request('barcode')],
+                ["name" => "NOMORBARCODE", "Value" => request('value')],
             ];
             $id_exists = $this->checkStockOpnameExists($stockopnamebefore);
 
@@ -290,7 +302,7 @@ class TaggingController extends BaseController
             $stockopname = [
                 ["name" => "STOCKOPNAMEID", "Value" => $setting->stockopname_id],
                 ["name" => "COLLECTIONID", "Value" => request('id')],
-                ["name" => "NOMORBARCODE", "Value" => request('barcode')],
+                ["name" => "NOMORBARCODE", "Value" => request('value')],
                 ["name" => "PREVLOCATIONID", "Value" => request('location_id')],
                 ["name" => "PREV_LOCATION_SHELF_ID", "Value" => request('location_shelf_id')],
                 ["name" => "PREV_LOCATION_RUGS_ID", "Value" => request('location_rugs_id')],

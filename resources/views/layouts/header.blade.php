@@ -1,3 +1,4 @@
+@if(session('user') !== null) 
 <div class="appHeader">
     <div class="left">
             <a href="#" class="headerButton goBack">
@@ -7,3 +8,4 @@
     <div class="pageTitle">{{$title}}</div>
     <div class="right"></div>
 </div>
+@endif

@@ -1,12 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\TaggingController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\RakController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\StockOpnameController;
 use App\Http\Middleware\ProtectLoginMiddleware;
 
 Route::get('/login', [LoginController::class, 'index']);
@@ -14,6 +16,8 @@ Route::get('/', [LoginController::class, 'index']);
 Route::post('/login', [LoginController::class, 'submit']);
 Route::get('/logout', [LoginController::class, 'logout']);
 Route::group(['middleware' => ProtectLoginMiddleware::class], function () {
+    Route::get('/home', [DashboardController::class, 'index']);
+
     Route::get('/tagging', [TaggingController::class, 'index']);
     Route::get('/tagging/search', [TaggingController::class, 'searchItem']);
     Route::post('/tagging/save', [TaggingController::class, 'save']);
@@ -30,6 +34,11 @@ Route::group(['middleware' => ProtectLoginMiddleware::class], function () {
     Route::post('/setting/location-rugs', [SettingController::class, 'saveLocationRugs']);
     Route::get('/setting/stockopname', [SettingController::class, 'getStockopname']);
     Route::post('/setting/stockopname', [SettingController::class, 'saveStockopname']);
+
+    Route::get('/stock-opname', [StockOpnameController::class, 'index']);
+    Route::post('/stock-opname/save', [StockOpnameController::class, 'save']);
+    Route::get('/stock-opname/synchronize', [StockOpnameController::class, 'synchronize']);
+
 
     Route::post('/location/add/{table}', [LocationController::class, 'add']);
     Route::post('/location/delete/{table}/{id}', [LocationController::class, 'delete']);

@@ -34,10 +34,7 @@ class LoginController extends BaseController
             session(['setting' => $setting->toArray()]);
             return redirect('/tagging');
         } else{
-            return response()->json([
-                "Status" => $user["Status"],
-                "Message" => $user["Message"]
-            ], 500);
+            return redirect('/login')->with('error', $user["Message"]);
         }
     }
 

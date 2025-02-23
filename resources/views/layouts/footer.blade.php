@@ -1,8 +1,21 @@
+@if(session('user') !== null) 
 <div class="appBottomMenu">
-        <a href="/" class="item  {{ request()->is('/') ? 'active' : '' }} ">
+        <a href="/home" class="item  {{ request()->is('/') ? 'active' : '' }} ">
             <div class="col">
-                <ion-icon name="pie-chart-outline"></ion-icon>
+                <ion-icon name="home-outline"></ion-icon>
+                <strong>Beranda</strong>
+            </div>
+        </a>
+        <a href="/tagging" class="item  {{ request()->is('/') ? 'active' : '' }} ">
+            <div class="col">
+                <ion-icon name="scan-outline"></ion-icon>
                 <strong>Tagging</strong>
+            </div>
+        </a>
+        <a href="/stock-opname" class="item  {{ request()->is('/stock-opname') ? 'active' : '' }} ">
+            <div class="col">
+                <ion-icon name="library-outline"></ion-icon>
+                <strong>Stock Opname</strong>
             </div>
         </a>
         <a href="/rak" class="item {{ request()->is('/rak') ? 'active' : '' }}">
@@ -31,3 +44,4 @@
         </a>
         
 </div>
+@endif

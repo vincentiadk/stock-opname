@@ -9,6 +9,9 @@
         @csrf
         <div class="card">
             <div class="card-body pb-1">
+            @if (session('error'))
+                <div class="alert alert-danger">{{ session('error') }}</div>
+            @endif
                 <div class="form-group basic">
                     <div class="input-wrapper">
                         <label class="label" for="email1">Username</label>
