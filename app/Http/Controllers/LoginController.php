@@ -14,7 +14,7 @@ class LoginController extends BaseController
                 'title' => 'Login'
             ]);
         } else {
-            return redirect('/tagging');
+            return redirect('/home');
         }
     }
     public function submit()
@@ -32,7 +32,7 @@ class LoginController extends BaseController
             $setting = Setting::updateOrCreate(['user_id'=>$id])->refresh();
 
             session(['setting' => $setting->toArray()]);
-            return redirect('/tagging');
+            return redirect('/home');
         } else{
             return redirect('/login')->with('error', $user["Message"]);
         }

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="675" height="175" viewBox="0 0 675 175">
+  <!-- Background transparan -->
+  <rect width="675" height="175" fill="none" />
+
+<!-- Ikon: Clipboard -->
+  <g id="clipboard" transform="translate(20,20)">
+    <!-- Bentuk utama clipboard -->
+    <rect x="0" y="20" width="70" height="115" rx="8" ry="8" fill="none" stroke="white" stroke-width="5"/>
+    <!-- Clip di atas clipboard -->
+    <rect x="15" y="0" width="40" height="25" rx="5" ry="5" fill="none" stroke="white" stroke-width="5"/>
+    <!-- Garis-garis sebagai representasi daftar/isi -->
+    <line x1="10" y1="50" x2="60" y2="50" stroke="white" stroke-width="3"/>
+    <line x1="10" y1="70" x2="60" y2="70" stroke="white" stroke-width="3"/>
+    <line x1="10" y1="90" x2="60" y2="90" stroke="white" stroke-width="3"/>
+  </g>
+
+
+  <!-- Teks: Stock Opname, vertikal terpusat dengan ikon -->
+  <text x="100" y="87.5" font-family="'Roboto', sans-serif" font-size="90" fill="white" font-weight="bold" dominant-baseline="middle">
+    STOCK OPNAME 
+  </text>
+</svg>

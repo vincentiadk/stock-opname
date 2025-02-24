@@ -101,8 +101,8 @@ class TaggingController extends BaseController
             $id_exists = $this->checkStockOpnameExists($stockopnamebefore);
             // LOGIKA INI MENIMPA DATA SEBELUMNYA //
             if ($id_exists > 0){
-                $res_col   = Http::post($this->url . "?token=" . $this->token . "&id=" . request('id') . "&op=update&table=COLLECTiONS&issavehistory=0&ListUpdateItem=" . urlencode(json_encode($collections)));
-                $res_stock = Http::post($this->url . "?token=" . $this->token . "&id=$id_exists&op=update&table=STOCKOPNAMEDETAIL&issavehistory=0&ListUpdateItem=" . urlencode(json_encode($stockopnamedetail)));
+                $res_col   = Http::post($this->url . "?token=" . $this->token . "&id=" . request('id') . "&op=update&table=COLLECTiONS&issavehistory=1&ListUpdateItem=" . urlencode(json_encode($collections)));
+                $res_stock = Http::post($this->url . "?token=" . $this->token . "&id=$id_exists&op=update&table=STOCKOPNAMEDETAIL&issavehistory=1&ListUpdateItem=" . urlencode(json_encode($stockopnamedetail)));
                 if ($res_col["Status"] == "Success") {
                     if ($res_stock["Status"] == "Success") {
                         return response()->json([
@@ -119,8 +119,8 @@ class TaggingController extends BaseController
                     ], 500);
                 }
             } else {
-                $res_col   = Http::post($this->url . "?token=" . $this->token . "&id=" . request('id') . "&op=update&table=COLLECTiONS&issavehistory=0&ListUpdateItem=" . urlencode(json_encode($collections)));
-                $res_stock = Http::post($this->url . "?token=" . $this->token . "&op=add&table=STOCKOPNAMEDETAIL&issavehistory=0&ListAddItem=" . urlencode(json_encode($stockopnamedetail)));
+                $res_col   = Http::post($this->url . "?token=" . $this->token . "&id=" . request('id') . "&op=update&table=COLLECTiONS&issavehistory=1&ListUpdateItem=" . urlencode(json_encode($collections)));
+                $res_stock = Http::post($this->url . "?token=" . $this->token . "&op=add&table=STOCKOPNAMEDETAIL&issavehistory=1&ListAddItem=" . urlencode(json_encode($stockopnamedetail)));
                 
                 if ($res_col["Status"] == "Success") {
                     if ($res_stock["Status"] == "Success") {
@@ -189,8 +189,8 @@ class TaggingController extends BaseController
                     ["name" => "UPDATEBY", "Value" => session('user')["username"]],
                     ["name" => "UPDATETERMINAL", "Value" => \Request::ip()],
                 ]);
-                $res_col   = Http::post($this->url . "?token=" . $this->token . "&id=" . request('id') . "&op=update&table=COLLECTIONS&issavehistory=0&ListUpdateItem=" . urlencode(json_encode($collections)));
-                $res_stock = Http::post($this->url . "?token=" . $this->token . "&id=$id_before&op=update&table=STOCKOPNAMEDETAIL&issavehistory=0&ListUpdateItem=" . urlencode(json_encode($so_masalah)));
+                $res_col   = Http::post($this->url . "?token=" . $this->token . "&id=" . request('id') . "&op=update&table=COLLECTIONS&issavehistory=1&ListUpdateItem=" . urlencode(json_encode($collections)));
+                $res_stock = Http::post($this->url . "?token=" . $this->token . "&id=$id_before&op=update&table=STOCKOPNAMEDETAIL&issavehistory=1&ListUpdateItem=" . urlencode(json_encode($so_masalah)));
                 if($res_col["Status"] == "Success") {
                     if ($res_stock["Status"] == "Success") {
                         return response()->json([
@@ -215,8 +215,8 @@ class TaggingController extends BaseController
                     ["name" => "CREATEBY", "Value" => session('user')["username"]],
                     ["name" => "CREATETERMINAL", "Value" => \Request::ip()],
                 ]);
-                $res_col   = Http::post($this->url . "?token=" . $this->token . "&id=" . request('id') . "&op=update&table=COLLECTIONS&issavehistory=0&ListUpdateItem=" . urlencode(json_encode($collections)));
-                $res_stock = Http::post($this->url . "?token=" . $this->token . "&op=add&table=STOCKOPNAMEDETAIL&issavehistory=0&ListAddItem=" . urlencode(json_encode($so_masalah)));
+                $res_col   = Http::post($this->url . "?token=" . $this->token . "&id=" . request('id') . "&op=update&table=COLLECTIONS&issavehistory=1&ListUpdateItem=" . urlencode(json_encode($collections)));
+                $res_stock = Http::post($this->url . "?token=" . $this->token . "&op=add&table=STOCKOPNAMEDETAIL&issavehistory=1&ListAddItem=" . urlencode(json_encode($so_masalah)));
                 if ($res_stock["Status"] == "Success") {
                     return response()->json([
                         "Message" => "Success",
@@ -264,7 +264,7 @@ class TaggingController extends BaseController
                 ["name" => "CREATEBY", "Value" => session('user')["username"]],
                 ["name" => "CREATETERMINAL", "Value" => \Request::ip()],
             ]);
-            $res_stock = Http::post($this->url . "?token=" . $this->token . "&op=add&table=STOCKOPNAMEDETAIL&issavehistory=0&ListAddItem=" . urlencode(json_encode($so_masalah)));
+            $res_stock = Http::post($this->url . "?token=" . $this->token . "&op=add&table=STOCKOPNAMEDETAIL&issavehistory=1&ListAddItem=" . urlencode(json_encode($so_masalah)));
             if ($res_stock["Status"] == "Success") {
                 return response()->json([
                     "Message" => "Success",
@@ -315,11 +315,11 @@ class TaggingController extends BaseController
                 ["name" => "CREATETERMINAL", "Value" => \Request::ip()],
             ];
             if($id_exists > 0 ){
-                $res_col   = Http::post($this->url . "?token=" . $this->token . "&id=" . request('id') . "&op=update&table=COLLECTIONS&issavehistory=0&ListUpdateItem=" . urlencode(json_encode($collections)));
-                $res_stock = Http::post($this->url . "?token=" . $this->token . "&id=$id_exists&op=update&table=STOCKOPNAMEDETAIL&issavehistory=0&ListUpdateItem=" . urlencode(json_encode($stockopname)));
+                $res_col   = Http::post($this->url . "?token=" . $this->token . "&id=" . request('id') . "&op=update&table=COLLECTIONS&issavehistory=1&ListUpdateItem=" . urlencode(json_encode($collections)));
+                $res_stock = Http::post($this->url . "?token=" . $this->token . "&id=$id_exists&op=update&table=STOCKOPNAMEDETAIL&issavehistory=1&ListUpdateItem=" . urlencode(json_encode($stockopname)));
             } else {
-                $res_col   = Http::post($this->url . "?token=" . $this->token . "&id=" . request('id') . "&op=update&table=COLLECTIONS&issavehistory=0&ListUpdateItem=" . urlencode(json_encode($collections)));
-                $res_stock = Http::post($this->url . "?token=" . $this->token . "&op=add&table=STOCKOPNAMEDETAIL&issavehistory=0&ListAddItem=" . urlencode(json_encode($stockopname)));
+                $res_col   = Http::post($this->url . "?token=" . $this->token . "&id=" . request('id') . "&op=update&table=COLLECTIONS&issavehistory=1&ListUpdateItem=" . urlencode(json_encode($collections)));
+                $res_stock = Http::post($this->url . "?token=" . $this->token . "&op=add&table=STOCKOPNAMEDETAIL&issavehistory=1&ListAddItem=" . urlencode(json_encode($stockopname)));
             }
             if($res_col["Status"] == "Success") {
                 if ($res_stock["Status"] == "Success") {

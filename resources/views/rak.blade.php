@@ -41,19 +41,6 @@
         loadDataTable();
         html5QrCode.stop();
         $('#scanQR').css('display', 'block');
-        /*return $.get("{{ url('collection/search') }}" + '?barcode=' + decodedText, function (response) {
-            if (response["Status"] == "Success") {
-                let data = response["Data"];
-                $('#title').text(data["TITLE"]);
-                $('#barcode').val(decodedText);
-                $('#nodeposit').val(data['NOINDUK_DEPOSIT']);
-                html5QrCode.stop();
-            } else {
-                html5QrCode.stop();
-                alert(response["Message"]);
-                qrCodeDisplay(config);
-            }
-        });*/
     };
     $('#scanQR').on('click', function(){
         qrCodeDisplay(config);
@@ -62,16 +49,7 @@
     const qrCodeDisplay = (config) => {
         html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
     }
-    // If you want to prefer front camera
-    //html5QrCode.start({ facingMode: "user" }, config, qrCodeSuccessCallback);
-
-    // If you want to prefer back camera
-    //html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
     qrCodeDisplay(config);
-    $('#btnSave').on('click', function () {
-        alert('ok!');
-    });
-
     var loadDataTable = function(){
 		t = new DataTable('#table', {
 			scrollX: true,
@@ -94,6 +72,5 @@
 			},
 		});
 	};
-    //loadDataTable();
 </script>
 @endsection
