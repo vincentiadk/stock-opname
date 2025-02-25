@@ -8,87 +8,35 @@
                 <h1 class="total">{{session('user')['username'] }}</h1>
             </div>
             <div class="right">
-                <a
-                    href="#"
-                    class="button"
-                    data-bs-toggle="modal"
-                    data-bs-target="#depositActionSheet"
-                >
-                    <ion-icon
-                        name="add-outline"
-                        role="img"
-                        class="md hydrated"
-                        aria-label="add outline"
-                    ></ion-icon>
-                </a>
+                
             </div>
         </div>
         <!-- * Balance -->
         <!-- Wallet Footer -->
         <div class="wallet-footer">
-            <div class="item">
-                <a
-                    href="#"
-                    data-bs-toggle="modal"
-                    data-bs-target="#withdrawActionSheet"
-                >
-                    <div class="icon-wrapper bg-danger">
-                        <ion-icon
-                            name="arrow-down-outline"
-                            role="img"
-                            class="md hydrated"
-                            aria-label="arrow down outline"
-                        ></ion-icon>
-                    </div>
-                    <strong>Withdraw</strong>
-                </a>
-            </div>
-            <div class="item">
-                <a
-                    href="#"
-                    data-bs-toggle="modal"
-                    data-bs-target="#sendActionSheet"
-                >
-                    <div class="icon-wrapper">
-                        <ion-icon
-                            name="arrow-forward-outline"
-                            role="img"
-                            class="md hydrated"
-                            aria-label="arrow forward outline"
-                        ></ion-icon>
-                    </div>
-                    <strong>Send</strong>
-                </a>
-            </div>
-            <div class="item">
-                <a href="app-cards.html">
-                    <div class="icon-wrapper bg-success">
-                        <ion-icon
-                            name="card-outline"
-                            role="img"
-                            class="md hydrated"
-                            aria-label="card outline"
-                        ></ion-icon>
-                    </div>
-                    <strong>Cards</strong>
-                </a>
-            </div>
-            <div class="item">
-                <a
-                    href="#"
-                    data-bs-toggle="modal"
-                    data-bs-target="#exchangeActionSheet"
-                >
-                    <div class="icon-wrapper bg-warning">
-                        <ion-icon
-                            name="swap-vertical"
-                            role="img"
-                            class="md hydrated"
-                            aria-label="swap vertical"
-                        ></ion-icon>
-                    </div>
-                    <strong>Exchange</strong>
-                </a>
+            <div class="form-group">
+            @if($setting)
+                @if(! is_null($setting->stockopname_id))
+                <label class="mb-1"><strong>Nama Project : </strong></label><label class="bg-secondary"> {{ $setting->stockopname_name }}</label>
+                @endif
+                <label><strong>Lokasi :</strong> </label>
+                @if(! is_null($setting->location_id))
+                    <label class="bg-info">{{ $setting->location_name }} </label>
+                    @if(! is_null($setting->location_shelf_id))
+                    <label class="bg-info">{{ $setting->location_shelf_name }}</label>
+                    @endif
+                    @if(! is_null($setting->location_rugs_id))
+                    <label class="bg-info">{{ $setting->location_rugs_name }} </label><a href="{{ url('/setting') }}" class="btn btn-primary btn-sm">Ubah lokasi</a>
+                    @else
+                
+                <h4>Anda belum mengatur lokasi dengan lengkap. <a href="{{ url('/setting') }}" class="btn btn-primary btn-sm">Atur lokasi</a></h4>
+                @endif
+            @else
+                <h4>Anda belum mengatur lokasi. <a href="{{ url('/setting') }}" class="btn btn-primary btn-sm">Atur lokasi</a></h4>
+            @endif
+            @else
+            <h4>Anda belum mengatur lokasi. <a href="{{ url('/setting') }}" class="btn btn-primary btn-sm">Atur lokasi</a></h4>
+            @endif
             </div>
         </div>
         <!-- * Wallet Footer -->
