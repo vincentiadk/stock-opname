@@ -125,8 +125,13 @@
                 ndef.onreading = event => {
                     $(this).uiSound({play: "success"});
                     let sn  = event.serialNumber.toString();
-                    sn = sn.replace(/:/g, '').toUpperCase();
-                    isiTags(sn);
+                    let reversedSerial = sn
+                                        .split(":")     
+                                        .reverse()      
+                                        .join("") 
+                                        .toUpperCase();
+                    //sn = sn.replace(/:/g, '').toUpperCase();
+                    isiTags(reversedSerial);
                 };
             }).catch(error => {
                 alert(`Error! Scan failed to start: ${error}.`);
@@ -144,7 +149,7 @@
             $('#txtTags').text('');
             ndef();
         } else {
-            setErrorMessage('Fitur NFC tidak didukung pada browser atau perangkat mobile Anda');
+            setErrorMessage('Fitur NFC tidak didukung pada browser atau perangkat mobile Anda.');
         }
     });
     $('#btnNfcDisable').on('click', function(){
@@ -166,12 +171,16 @@
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             data: JSON.stringify({
-                "location_shelf_id":location_shelf_id,
-                "location_rugs_id":location_rugs_id,
-                "location_id":location_id,
+                "location_shelf_id":setlocation_shelf_id,
+                "location_rugs_id":setlocation_rugs_id,
+                "location_id":setlocation_id,
+                "listdata" : tags_array,
             }),
             success: function(data) {
                 setSuccessMessage('Data koleksi berhasil di simpan!');
+                count = 5;
+                $('#txtTags').attr('rows',5);
+                $('#txtTags').text('');
             },
             error: function(data){  
                 setErrorMessage('Gagal menyimpan! ' + data.responseJSON.Message);

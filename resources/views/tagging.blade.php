@@ -439,8 +439,12 @@
                 };
                 ndef.onreading = event => {
                     let sn  = event.serialNumber.toString();
-                    sn = sn.replace(/:/g, '').toUpperCase() +'\n';
-                    searchBarcode(sn,'rfid');
+                    let reversedSerial = sn
+                                        .split(":")     
+                                        .reverse()      
+                                        .join("") 
+                                        .toUpperCase();
+                    searchBarcode(reversedSerial,'rfid');
                 };
             }).catch(error => {
                 alert(`Error! Scan failed to start: ${error}.`);
