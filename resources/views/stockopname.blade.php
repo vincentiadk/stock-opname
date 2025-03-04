@@ -63,9 +63,11 @@
     var setlocation_rugs_id = "{{$setting->location_rugs_id ? $setting->location_rugs_id :  ''}}";
     var collection_id = "";
     var location_id, location_shelf_id, location_rugs_id = "";
+    var stockopname_id = "{{$setting->stockopname_id ? $setting->stockopname_id :''}}"
     var tags = "";
     var count = 0;
     var tags_array = [];
+    var jenis ="BARQR";
     var showCamera = false;
     const setErrorMessage = (text) =>{
         $('#lblSuccess').css('display', 'none');
@@ -139,6 +141,7 @@
         };
     } 
     $('#btnNfcEnable').on('click', function(){
+        jenis = "RFID";
         if ('NDEFReader' in window) {
             if(showCamera) {
                 html5QrCode.stop();
@@ -153,6 +156,7 @@
         }
     });
     $('#btnNfcDisable').on('click', function(){
+        jenis = "BARQR";
         qrCodeDisplay();
         $('#btnNfcDisable').css('display', 'none');
         $('#btnNfcEnable').css('display', 'block');
@@ -171,10 +175,12 @@
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
             },
             data: JSON.stringify({
+                "stockopnameid" : stockopname_id,
                 "location_shelf_id":setlocation_shelf_id,
                 "location_rugs_id":setlocation_rugs_id,
                 "location_id":setlocation_id,
                 "listdata" : tags_array,
+                "jenis" : jenis,
             }),
             success: function(data) {
                 setSuccessMessage('Data koleksi berhasil di simpan!');

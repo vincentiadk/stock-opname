@@ -21,10 +21,12 @@ class StockOpnameController extends BaseController
     {
         try{
             $datas = [
+                [ "name" => "STOCKOPNAMEID", 'Value' => $request->input('stockopnameid') ],
                 [ "name" => "LISTDATA", "Value" => implode(',' , $request->input('listdata')) ],
                 [ 'name' => 'LOCATION_ID', 'Value' => $request->input('location_id')],
                 [ "name" => 'LOCATION_SHELF_ID', 'Value' => $request->input('location_shelf_id')],
                 [ 'name' => 'LOCATION_RUGS_ID', 'Value' => $request->input('location_rugs_id')],
+                [ "name" => "JENIS", 'Value' => $request->input('jenis') ],
                 [ "name" => "CREATEDATE", "Value" => now()->addHours(7)->format('Y-m-d H:i:s') ],
                 [ "name" => "CREATEBY", "Value"=> session('user')["username"]], 
                 [ "name" => "CREATETERMINAL", "Value"=> \Request::ip()]
