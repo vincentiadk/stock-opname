@@ -31,7 +31,7 @@ class StockOpnameController extends BaseController
                 [ "name" => "CREATEBY", "Value"=> session('user')["username"]], 
                 [ "name" => "CREATETERMINAL", "Value"=> \Request::ip()]
             ]; 
-            $res =  Http::post($this->url ."?token=" . $this->token."&op=add&table=STOCKOPNAMEJOBSS&issavehistory=0&ListAddItem=" . urlencode(json_encode($datas)));
+            $res =  Http::post($this->url ."?token=" . $this->token."&op=add&table=STOCKOPNAMEJOBS&issavehistory=0&ListAddItem=" . urlencode(json_encode($datas)));
             if($res["Status"] == "Success"){
                 return response()->json([
                     "Message" => "Success",
