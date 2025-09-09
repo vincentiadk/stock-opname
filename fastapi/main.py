@@ -84,71 +84,97 @@ def _get_location_name(conn, job_row: dict) -> str:
     loc_id = job_row.get("LOCATION_ID")
     if not loc_id:
         return "-"
-    sql = text(f"""
-        SELECT {H_LOC_NAME_COL}
-          FROM {H_LOCATIONS_TABLE}
-         WHERE {H_LOC_ID_COL} = :id
-    """)
-    r = conn.execute(sql, {"id": loc_id}).fetchone()
-    return (r[0] if r and r[0] else f"{loc_id}")
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT NAME
+          FROM LOCATIONS
+         WHERE ID = :id
+    """, {"id": loc_id})
+    r = cur.fetchone()
+    return r[0] if r and r[0] else f"{loc_id}"
 
 # ---- Helper: ambil ID collections dari daftar barcode ----
 def _get_collections_by_barcodes(conn, barcodes: list[str]) -> list[dict]:
     if not barcodes:
         return []
-    # Pecah jadi batch kecil kalau list panjang (opsional)
-    sql = text("""
+    cur = conn.cursor()
+    # oracledb: IN membutuhkan placeholder dinamis
+    placeholders = ",".join([f":b{i}" for i in range(len(barcodes))])
+    params = {f"b{i}": bc for i, bc in enumerate(barcodes)}
+    cur.execute(
+        f"""
         SELECT ID, NOMORBARCODE
           FROM collections
-         WHERE NOMORBARCODE IN :bcs
-    """)
-    # SQLAlchemy butuh tuple untuk IN (:bcs)
-    result = conn.execute(sql, {"bcs": tuple(barcodes)}).mappings().all()
-    return [dict(row) for row in result]
+         WHERE NOMORBARCODE IN ({placeholders})
+        """,
+        params,
+    )
+    rows = cur.fetchall()
+    return [{"ID": r[0], "NOMORBARCODE": r[1]} for r in rows]
 
 # ---- Helper: ambil ID collection dari satu barcode ----
 def _get_collection_id_by_barcode(conn, barcode: str) -> int | None:
-    sql = text("""
+    """
+    Ambil ID koleksi dari NOMORBARCODE. Return None kalau tidak ketemu.
+    """
+    bc = (barcode or "").strip()
+    if not bc:
+        return None
+    cur = conn.cursor()
+    cur.execute(
+        """
         SELECT ID
           FROM collections
          WHERE NOMORBARCODE = :bc
-    """)
-    r = conn.execute(sql, {"bc": barcode}).fetchone()
+        """,
+        {"bc": bc},
+    )
+    r = cur.fetchone()
     return int(r[0]) if r and r[0] is not None else None
 
-# ---- Helper: insert satu baris history ----
-def _insert_history(conn, idref: int, note: str, actionby: str, terminal: str):
-    sql = text(f"""
+# ---- Helper: insert banyak history sekaligus ----
+def _bulk_insert_history(conn, idrefs: list[int], note: str, actionby: str, terminal: str) -> None:
+    if not idrefs:
+        return
+    cur = conn.cursor()
+    sql = f"""
         INSERT INTO {HISTORY_TABLE}
             (TABLENAME, ACTION, IDREF, NOTE, ACTIONBY, ACTIONDATE, ACTIONTERMINAL)
         VALUES
-            (:tablename, :action, :idref, :note, :actionby, CURRENT_TIMESTAMP, :terminal)
-    """)
-    conn.execute(sql, {
-        "tablename": "collections",
-        "action": "Edit",
-        "idref": idref,
-        "note": note,
-        "actionby": actionby or "fastapi",
-        "terminal": terminal or "-",
-    })
+            (:tablename, :action, :idref, :note, :actionby, SYSTIMESTAMP, :terminal)
+    """
+    batch = []
+    for _id in idrefs:
+        batch.append({
+            "tablename": "collections",
+            "action": "Edit",
+            "idref": int(_id),
+            "note": note,
+            "actionby": actionby or "fastapi",
+            "terminal": terminal or "-",
+        })
+    cur.executemany(sql, batch)
+
 # --- ambil job sebagai mapping (bukan tuple) ---
-def _fetch_job(engine: Engine, stockopname_id: str) -> dict:
-    """
-    Ambil 1 row STOCKOPNAMEJOBS sebagai dict/mapping.
-    Pastikan minimal ada: LISTDATA, JENIS. Kolom lain dipakai utk update_set.
-    """
-    sql = text("""
-        SELECT *
-          FROM STOCKOPNAMEJOBS
-         WHERE STOCKOPNAMEID = :id
-    """)
-    with engine.connect() as conn:
-        row = conn.execute(sql, {"id": stockopname_id}).mappings().fetchone()
-    if not row:
-        raise HTTPException(status_code=404, detail=f"STOCKOPNAMEJOBS id={stockopname_id} tidak ditemukan")
-    # casting ke dict agar aman
-    return dict(row)
+def _fetch_job(stockopname_id: str) -> dict:
+    cols = ["ID","LISTDATA", "JENIS", "LOCATION_ID", "LOCATION_SHELF_ID", "LOCATION_RUGS_ID", "STOCKOPNAMEID"]
+    col_list = ", ".join(cols)
+    with get_oracle_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(f"""
+            SELECT {col_list}
+            FROM STOCKOPNAMEJOBS
+            WHERE ID = :id
+        """, {"id": stockopname_id})
+        row = cur.fetchone()
+
+        if not row:
+            log.warning("Job tidak ditemukan | id=%s (dicoba kolom STOCKOPNAMEID/ID)", stockopname_id)
+            raise HTTPException(status_code=404, detail=f"STOCKOPNAMEJOBS id={stockopname_id} tidak ditemukan")
+
+        # row = tuple -> map ke dict pakai zip
+        job = {col: row[i] for i, col in enumerate(cols)}
+        return job
 
 def _build_update_set(job_row: dict) -> dict:
     """
@@ -169,50 +195,53 @@ def _bulk_update_by_barcodes(conn, stockopname_id: str, barcodes: list[str], upd
 
     # Siapkan bagian SET dinamis
     set_clauses = []
-    params_template = {"sid": stockopname_id, "sby": (requested_by or "fastapi"), "sip" : (requested_ip or "127.0.0.1")}
+    params_template = {
+        #"sid": stockopname_id, 
+        "sby": (requested_by or "fastapi"), 
+        "sip" : (requested_ip or "127.0.0.1")
+        }
     for col in update_set:
         set_clauses.append(f"{col} = :{col}")
         params_template[col] = update_set[col]
 
     # kolom standar untuk jejak opname
     set_clauses.extend([
-        "STOCKOPNAME_ID = :sid",
+        #"STOCKOPNAME_ID = :sid",
         "UPDATEDATE = CURRENT_TIMESTAMP",
         "UPDATEBY = :sby",
         "UPDATETERMINAL = :sip",
         "SHELVING_DATE = CURRENT_TIMESTAMP",
-        "SHELVINGBY = :sby"
+        "SHELVING_BY = :sby"
     ])
     set_sql = ", ".join(set_clauses)
 
-    sql = text(f"""
+    sql = f"""
         UPDATE collections
            SET {set_sql}
          WHERE NOMORBARCODE = :barcode
-    """)
-
+    """
+    cur = conn.cursor()
     # executemany
     batch_params = []
     for bc in barcodes:
         p = dict(params_template)
         p["barcode"] = bc
         batch_params.append(p)
-
-    result = conn.execute(sql, batch_params)
-    # di sebagian driver rowcount untuk executemany = total affected rows
-    return result.rowcount or 0
+    cur.executemany(sql, batch_params)
+    return cur.rowcount if cur.rowcount is not None else 0
 
 def _update_by_rfid(conn, stockopname_id: str, serial_number: str, update_set: dict, requested_by: Optional[str], requested_ip: Optional[str]) -> int:
     """
     Cari RFID_NO via SERIAL_NUMBER, lalu update collections WHERE NOMORBARCODE = RFID_NO
     memakai update_set yang sama.
     """
-    q_rfid = text("""
+    cur = conn.cursor()
+    cur.execute("""
         SELECT RFID_NO
           FROM RFID_COLLECTIONS
          WHERE SERIAL_NUMBER = :sn
-    """)
-    r = conn.execute(q_rfid, {"sn": serial_number}).fetchone()
+    """,{"sn": serial_number.strip()})
+    r = cur.fetchone()
     if not r or not r[0]:
         return 0
     rfid_no = r[0]
@@ -225,31 +254,52 @@ def _update_by_rfid(conn, stockopname_id: str, serial_number: str, update_set: d
         set_clauses.append(f"{col} = :{col}")
         params[col] = update_set[col]
     set_clauses.extend([
-        "STOCKOPNAME_ID = :sid",
+        #"STOCKOPNAME_ID = :sid",
         "UPDATEDATE = CURRENT_TIMESTAMP",
         "UPDATEBY = :sby",
         "UPDATETERMINAL = :sip",
         "SHELVING_DATE = CURRENT_TIMESTAMP",
-        "SHELVINGBY = :sby"
+        "SHELVING_BY = :sby"
     ])
     set_sql = ", ".join(set_clauses)
 
-    sql = text(f"""
+    cur.execute(f"""
         UPDATE collections
            SET {set_sql}
          WHERE NOMORBARCODE = :rfid_no
-    """)
+    """, params)
+    log.info("RENDERED:\n%s", render_sql(f"""
+        UPDATE collections
+           SET {set_sql}
+         WHERE NOMORBARCODE = :rfid_no
+    """, params))
     res = conn.execute(sql, params)
-    return res.rowcount or 0
+    return cur.rowcount if cur.rowcount is not None else 0
+
+def _split_listdata(listdata: str) -> list[str]:
+    """
+    Pecah LISTDATA (string) jadi list, delimiter koma.
+    Buang spasi kosong & entry kosong.
+    """
+    if not listdata:
+        return []
+    return [x.strip() for x in (listdata or "").split(",") if x.strip()]
+
+def _column_exists(conn, table: str, column: str) -> bool:
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT 1
+          FROM user_tab_columns
+         WHERE table_name = :t AND column_name = :c
+    """, {"t": table.upper(), "c": column.upper()})
+    return cur.fetchone() is not None
 
 def run_sync_job(stockopname_id: str, payload: SyncPayload) -> SyncResult:
-    if ENGINE is None:
-        raise HTTPException(status_code=500, detail="DATABASE_URL belum dikonfigurasi")
-
     started = time.time()
-    log.info("Start sync | id=%s | by=%s | ip=%s", stockopname_id, payload.requested_by, payload.request_ip)
+    log.info("Start sync | id=%s | by=%s | ip=%s",
+             stockopname_id, payload.requested_by, payload.request_ip)
 
-    job = _fetch_job(ENGINE, stockopname_id)
+    job = _fetch_job(stockopname_id)
     listdata_str = (job.get("LISTDATA") or "")
     jenis = (job.get("JENIS") or "").upper()
     items = _split_listdata(listdata_str)
@@ -259,32 +309,117 @@ def run_sync_job(stockopname_id: str, payload: SyncPayload) -> SyncResult:
     not_found = 0
     errors: list[str] = []
 
-    with ENGINE.begin() as conn:
-        if jenis == "BARQR":
-            # Batch BARQR sekali jalan (lebih cepat)
-            try:
-                count = _bulk_update_by_barcodes(conn, stockopname_id, items, update_set, payload.requested_by, payload.request_ip)
-                updated += count
-                not_found += max(0, len(items) - count)  # pendekatan kasar; jika perlu presisi, cek satu2
-            except Exception as e:
-                errors.append(f"BARQR_BATCH:{type(e).__name__}:{str(e)[:200]}")
-        elif jenis == "RFID":
-            # RFID: tetap per item (atau bisa di-batch mapping dulu kalau mau optimasi)
-            for idx, sn in enumerate(items, start=1):
+    with get_oracle_connection() as conn:
+        try:
+            lokasi_name = _get_location_name(conn, job)  # "Ruang Baca 1", dll
+            note = f"Koleksi dijajarkan pada lokasi = {lokasi_name}"
+            # --- 1) proses update koleksi ---
+            if jenis == "BARQR":
                 try:
-                    count = _update_by_rfid(conn, stockopname_id, sn, update_set, payload.requested_by, payload.request_ip)
-                    if count > 0:
+                    # filter & normalisasi list
+                    items_clean = [x.strip() for x in items if x and x.strip()]
+
+                    # ambil ID yang eksis untuk barcodes tsb
+                    rows = _get_collections_by_barcodes(conn, items_clean)  # [{ID, NOMORBARCODE}, ...]
+                    ids_exist = [r["ID"] for r in rows]
+                    exist_barcodes = {r["NOMORBARCODE"] for r in rows}
+                    not_found += max(0, len(items_clean) - len(exist_barcodes))
+
+                    # jalankan update hanya untuk barcode yang eksis
+                    if exist_barcodes:
+                        count = _bulk_update_by_barcodes(
+                            conn, stockopname_id, items, update_set,
+                            payload.requested_by, payload.request_ip
+                        )
                         updated += count
-                    else:
-                        not_found += 1
+                        # pendekatan kasar; untuk presisi, preselect existing barcodes
+                        not_found += max(0, len(items) - count)
+                        # tulis history untuk setiap ID yang terlibat
+                        _bulk_insert_history(
+                            conn,
+                            ids_exist,
+                            note,
+                            payload.requested_by,
+                            payload.request_ip
+                        )
+
                 except Exception as e:
-                    errors.append(f"{idx}:{sn}:{type(e).__name__}:{str(e)[:200]}")
-        else:
-            raise HTTPException(status_code=422, detail=f"Jenis tidak didukung: {jenis}")
+                    errors.append(f"BARQR_BATCH:{type(e).__name__}:{str(e)[:200]}")
+            elif jenis == "RFID":
+                for idx, sn in enumerate(items, start=1):
+                    try:
+                        count = _update_by_rfid(
+                            conn, stockopname_id, sn, update_set,
+                            payload.requested_by, payload.request_ip
+                        )
+                        if count > 0:
+                            updated += count
+                            rfid_no = None
+                            cur = conn.cursor()
+                            cur.execute("SELECT RFID_NO FROM RFID_COLLECTIONS WHERE SERIAL_NUMBER = :sn", {"sn": sn.strip()})
+                            row = cur.fetchone()
+                            if row and row[0]:
+                                rfid_no = str(row[0]).strip()
+                            if rfid_no:
+                                cid = _get_collection_id_by_barcode(conn, rfid_no)
+                                if cid:
+                                    _insert_history(conn, cid, note, payload.requested_by, payload.request_ip)
+                        else:
+                            not_found += 1
+                    except Exception as e:
+                        errors.append(f"{idx}:{sn}:{type(e).__name__}:{str(e)[:200]}")
+            else:
+                raise HTTPException(status_code=422, detail=f"Jenis tidak didukung: {jenis}")
+
+            # --- 2) update status job = SELESAI / PARTIAL ---
+            status_value = "SELESAI" if not errors else "SELESAI_PARTIAL"
+
+            set_parts = ["STATUS = :p_status"]
+            params = {
+                "p_status": status_value,
+                "p_id": stockopname_id,
+                "p_by": (payload.requested_by or "fastapi"),
+            }
+
+            # kalau kolom FINISHDATE & FINISHBY ada, ikut diisi
+            if _column_exists(conn, "STOCKOPNAMEJOBS", "FINISHDATE"):
+                set_parts.append("FINISHDATE = CURRENT_TIMESTAMP")
+            if _column_exists(conn, "STOCKOPNAMEJOBS", "FINISHBY"):
+                set_parts.append("FINISHBY = :p_by")
+
+            sql_update_job = f"""
+                UPDATE STOCKOPNAMEJOBS
+                   SET {", ".join(set_parts)}
+                 WHERE ID = :p_id
+            """
+            cur = conn.cursor()
+            cur.execute(sql_update_job, params)
+
+            # --- 3) commit semua perubahan ---
+            conn.commit()
+
+        except Exception as e:
+            conn.rollback()
+            log.exception("Sync failed, rolled back | id=%s | err=%s", stockopname_id, e)
+            # tandai job gagal jika mau (opsional):
+            with get_oracle_connection() as conn2:
+                try:
+                    cur2 = conn2.cursor()
+                    cur2.execute("""
+                        UPDATE STOCKOPNAMEJOBS
+                           SET STATUS = 'GAGAL'
+                         WHERE ID = :p_id
+                    """, {"p_id": stockopname_id})
+                    conn2.commit()
+                except Exception:
+                    conn2.rollback()
+            raise  # biar FastAPI balikin error
 
     duration = round(time.time() - started, 3)
-    log.info("Done sync | id=%s | jenis=%s | items=%s | updated=%s | not_found=%s | dur=%.3fs",
-             stockopname_id, jenis, len(items), updated, not_found, duration)
+    log.info(
+        "Done sync | id=%s | jenis=%s | items=%s | updated=%s | not_found=%s | dur=%.3fs",
+        stockopname_id, jenis, len(items), updated, not_found, duration
+    )
 
     return SyncResult(
         id=stockopname_id,
@@ -295,19 +430,37 @@ def run_sync_job(stockopname_id: str, payload: SyncPayload) -> SyncResult:
             "total_items": len(items),
             "updated_rows": updated,
             "not_found": not_found,
-            "updated_columns": sorted(list(update_set.keys()) + ["STOCKOPNAME_ID","STOCKOPNAME_AT","STOCKOPNAME_BY"]),
+            "updated_columns": sorted(
+                list(update_set.keys()) +
+                ["UPDATEDATE", "UPDATEBY", "UPDATETERMINAL", "SHELVING_DATE", "SHELVING_BY"]
+            ),
             "errors": errors[:50],
             "duration_sec": duration,
             "requested_by": payload.requested_by,
             "request_ip": payload.request_ip,
         }
     )
-
 def background_sync_job(stockopname_id: str, payload: SyncPayload) -> None:
     try:
         _ = run_sync_job(stockopname_id, payload)
     except Exception as e:
         log.exception("Background sync failed | id=%s | err=%s", stockopname_id, e)
+
+import re
+DEBUG_SQL = os.getenv("DEBUG_SQL", "0") == "1"
+def render_sql(sql: str, params: dict) -> str:
+    # sangat sederhana; cukup untuk debugging
+    def q(v):
+        if v is None: return "NULL"
+        if isinstance(v, (int, float)): return str(v)
+        s = str(v).replace("'", "''")
+        return f"'{s}'"
+    def repl(m):
+        key = m.group(1)
+        return q(params.get(key))
+    return re.sub(r":([A-Za-z0-9_]+)", repl, sql)
+
+
 
 # --- endpoints ---
 
