@@ -48,8 +48,59 @@ class StockOpnameController extends BaseController
         }
     }
 
-    public function synchronize()
+    public function synchronize(Request $request, $id = null)
     {
-        
+        try {
+            // Ambil ID dari route param atau query/body
+            $id = $id ?? $request->route('id') ?? $request->input('id');
+            if (!$id) {
+                return response()->json([
+                    'Message' => 'Parameter id wajib diisi.'
+                ], 422);
+            }
+
+            $baseUrl = rtrim(config('services.fastapi.base_url', env('FASTAPI_BASE_URL', '')), '/');
+            if (!$baseUrl) {
+                return response()->json([
+                    'Message' => 'FASTAPI_BASE_URL belum dikonfigurasi.'
+                ], 500);
+            }
+
+            // Siapkan client dengan optional Bearer token
+            $client = Http::retry(3, 300)      // 3x retry, jeda 300ms
+                          ->timeout(20);       // timeout 20 detik
+
+            $token = config('services.fastapi.token', env('FASTAPI_TOKEN'));
+            if (!empty($token)) {
+                $client = $client->withToken($token);
+            }
+
+            // Panggil FastAPI (POST /sync/{id}) — ganti ke GET jika endpoint Anda GET
+            $response = $client->post("{$baseUrl}/sync/{$id}", [
+                // kirimkan konteks tambahan bila perlu:
+                'requested_by' => session('user')['username'] ?? 'system',
+                'request_ip'   => $request->ip(),
+            ]);
+
+            if ($response->successful()) {
+                return response()->json([
+                    'Message' => 'Sync request sent.',
+                    'Data'    => $response->json(),
+                ], 200);
+            }
+
+            // Gagal (4xx/5xx)
+            return response()->json([
+                'Message' => 'FastAPI error.',
+                'Status'  => $response->status(),
+                'Error'   => $response->json() ?? $response->body(),
+            ], 502);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'Message' => 'Unexpected error.',
+                'Error'   => $e->getMessage(),
+            ], 500);
+        }
     }
 }
