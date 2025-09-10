@@ -129,7 +129,26 @@
     const $badge = $('#badgeCount');
 
     var html5QrCode = new Html5Qrcode("reader");
-    var config = { fps: 10, qrbox: { width: 350, height: 200 } };
+    const formats = [
+        Html5QrcodeSupportedFormats.QR_CODE,
+        Html5QrcodeSupportedFormats.CODE_128,
+        Html5QrcodeSupportedFormats.EAN_13,
+        Html5QrcodeSupportedFormats.CODE_39,
+        Html5QrcodeSupportedFormats.UPC_A
+    ];
+
+    const config = {
+        fps: 12,
+        formatsToSupport: formats,
+        // untuk 1D barcode lebih enak wide & pendek:
+        qrbox: (w, h) => {
+        const minEdge = Math.min(w, h);
+        const wide = Math.floor(minEdge * 0.85);
+        return { width: wide, height: Math.floor(wide * 0.45) }; // persegi panjang
+        },
+        aspectRatio: 1.7778 // 16:9 sering bikin fokus & auto-exposure lebih stabil
+    };
+    //var config = { fps: 10, qrbox: { width: 350, height: 200 } };
 
     var qrCodeDisplay = () => {
         html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
