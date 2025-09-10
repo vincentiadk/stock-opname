@@ -6,6 +6,7 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\TaggingController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\ShelvingController;
 use App\Http\Controllers\RakController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\StockOpnameController;
@@ -39,6 +40,9 @@ Route::group(['middleware' => ProtectLoginMiddleware::class], function () {
     Route::post('/stock-opname/save', [StockOpnameController::class, 'save']);
     Route::get('/stock-opname/synchronize', [StockOpnameController::class, 'synchronize']);
 
+    Route::get('/shelving', [ShelvingController::class, 'index']);
+    Route::post('/shelving/save', [ShelvingController::class, 'save']);
+    Route::get('/shelving/synchronize', [ShelvingController::class, 'synchronize']);
 
     Route::post('/location/add/{table}', [LocationController::class, 'add']);
     Route::post('/location/delete/{table}/{id}', [LocationController::class, 'delete']);

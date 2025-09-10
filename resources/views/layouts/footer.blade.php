@@ -18,6 +18,12 @@
                 <strong>Stock Opname</strong>
             </div>
         </a>
+         <a href="/shelving" class="item  {{ request()->is('/penjajaran') ? 'active' : '' }} ">
+            <div class="col">
+                <ion-icon name="library-outline"></ion-icon>
+                <strong>Shelving</strong>
+            </div>
+        </a>
         <a href="/rak" class="item {{ request()->is('/rak') ? 'active' : '' }}">
             <div class="col">
                 <ion-icon name="document-text-outline"></ion-icon>

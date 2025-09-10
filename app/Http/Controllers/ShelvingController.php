@@ -6,13 +6,13 @@ use Illuminate\Http\Request;
 use App\Models\Setting;
 use Illuminate\Support\Facades\Http;
 
-class StockOpnameController extends BaseController
+class ShelvingController extends BaseController
 {
     public function index()
     {
         $setting = Setting::updateOrCreate(['user_id' => session('user')['id']])->refresh();
-        return view('stockopname', [
-            'title'   => 'Stock Opname',
+        return view('shelving', [
+            'title'   => 'Penjajaran Koleksi',
             'setting' => $setting,
         ]);
     }

@@ -34,5 +34,7 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-
+    'fastapi' => [
+        'base_url' => env('FASTAPI_BASE_URL'),
+    ]
 ];
