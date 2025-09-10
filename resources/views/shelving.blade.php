@@ -157,24 +157,49 @@
 
     // config dinamis sesuai mode
     function buildConfig() {
-    const base = { fps: 12, formatsToSupport: [], qrbox: null, aspectRatio: 1.7778 };
-    if (MODE === "QR") {
-        base.formatsToSupport = FORMATS_QR;
-        base.qrbox = (w,h)=> {
-        const s = Math.floor(Math.min(w,h)*0.8);
-        return { width: s, height: s }; // persegi untuk QR
-        };
-    } else if (MODE === "BAR") {
-        base.formatsToSupport = FORMATS_BAR;
-        base.qrbox = (w,h)=> {
-        const minEdge = Math.min(w,h);
-        const wide = Math.floor(minEdge * 0.85);
-        return { width: wide, height: Math.floor(wide * 0.45) }; // lebar-pendek untuk 1D
-        };
-    }
-    return base;
+        const base = { fps: 12, formatsToSupport: [], qrbox: null, aspectRatio: 1.7778 };
+        if (MODE === "QR") {
+            startQRSharp();
+            base.formatsToSupport = FORMATS_QR;
+            base.qrbox = (w,h)=> {
+            const s = Math.floor(Math.min(w,h)*0.85);
+            return { width: s, height: s }; // persegi untuk QR
+            };
+            
+        } else if (MODE === "BAR") {
+            base.formatsToSupport = FORMATS_BAR;
+            base.qrbox = (w,h)=> {
+            const minEdge = Math.min(w,h);
+            const wide = Math.floor(minEdge * 0.85);
+            return { width: wide, height: Math.floor(wide * 0.45) }; // lebar-pendek untuk 1D
+            };
+        }
+        return base;
     }
     var showCamera = false;
+    async function pickBackCameraId() {
+        const cams = await Html5Qrcode.getCameras();
+        if (!cams?.length) throw new Error('Tidak ada kamera');
+        const back = cams.find(c => /back|rear|environment/i.test(c.label));
+        return (back || cams[0]).id;
+    }
+
+    async function startQRSharp() {
+        const cameraId = await pickBackCameraId();
+
+        // Start seperti biasa (pakai config kamu)
+        await html5QrCode.start(cameraId, buildConfig(), qrCodeSuccessCallback);
+
+        // Naikkan kualitas (Safari iOS biasanya support sebagian besar ini)
+        try {
+            await html5QrCode.applyVideoConstraints({
+            width:     { ideal: 1920 },   // target 1080p
+            height:    { ideal: 1080 },
+            frameRate: { ideal: 30, max: 30 },
+            advanced: [{ focusMode: "continuous" }]
+            });
+        } catch(_) { /* fine kalau tidak didukung */ }
+    }
     async function stopCameraIfAny() {
         if (showCamera) {
             try { await html5QrCode.stop(); } catch(_) {}
@@ -386,7 +411,7 @@ $('#btnSimpan').on('click', function () {
 
   $.ajax({
     type: 'POST',
-    url: '{{ url("stock-opname/save") }}',
+    url: '{{ url("shelving/save") }}',
     contentType: "application/json; charset=utf-8",
     dataType: 'json',
     headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
@@ -427,6 +452,7 @@ $('#btnHapus').on('click', function(){
   $('#txtTags').attr('rows',5).text('');
   $('#badgeCount').text('0 item');
   setSuccessMessage('Daftar berhasil dikosongkan.');
+  setUIBusy(false);
 });
 
     // Start default barcode scanner
