@@ -17,9 +17,10 @@ def claim_jobs(limit: int):
     ids = []
     with get_oracle_connection() as conn:
         cur = conn.cursor()
-        # lock baris agar multi-worker aman
+
         cur.execute("""
-            SELECT ID FROM STOCKOPNAMEJOBS
+            SELECT ID
+              FROM STOCKOPNAMEJOBS
              WHERE STATUS = 'PENDING'
              FOR UPDATE SKIP LOCKED
         """)
@@ -27,34 +28,45 @@ def claim_jobs(limit: int):
         if not rows:
             conn.rollback()
             return []
+
         ids = [int(r[0]) for r in rows if r and r[0] is not None]
-        if ids:
-            ph = ",".join([f":id{i}" for i in range(len(ids))])
-            params = {f"id{i}": i for i in ids}
-            params['by'] = WORKER_NAME
-            cur.execute(f"""
-                UPDATE STOCKOPNAMEJOBS
-                   SET STATUS='PROCESSING',
-                       START_AT=SYSTIMESTAMP,
-                       START_BY=:by,
-                       ERROR_MSG=NULL
-                 WHERE ID IN ({ph})
-            """, params)
+        if not ids:
+            conn.rollback()
+            return []
+
+        # Positional binds: (:1, :2)
+        params = [(WORKER_NAME, i) for i in ids]  # [(START_BY, ID), ...]
+
+        # (Opsional) log preview
+        log.info("Claiming %d jobs -> PROCESSING; preview=%s", len(ids), params[0] if params else None)
+
+        cur.executemany("""
+            UPDATE STOCKOPNAMEJOBS
+               SET STATUS      = 'PROCESSING',
+                   STARTDATE    = SYSTIMESTAMP,
+                   STARTBY    = :1,
+                   ERROR_MSG   = NULL
+             WHERE ID = :2
+        """, params)
+
         conn.commit()
     return ids
 
-def finalize_job(job_id: int, status: str, err: str|None):
+
+
+def finalize_job(job_id: int, status: str, err: str | None):
     with get_oracle_connection() as conn:
         cur = conn.cursor()
         cur.execute("""
             UPDATE STOCKOPNAMEJOBS
-               SET STATUS=:st,
-                   FINISHDATE=SYSTIMESTAMP,
-                   FINISHBY=:by,
-                   ERROR_MSG=:err
-             WHERE ID = :id
-        """, {"st": status, "by": WORKER_NAME, "err": err, "id": job_id})
+               SET STATUS      = :1,
+                   FINISHDATE  = SYSTIMESTAMP,
+                   FINISHBY    = :2,
+                   ERROR_MSG   = :3
+             WHERE ID          = :4
+        """, (status, WORKER_NAME, err, job_id))
         conn.commit()
+
 def main_loop():
     log.info("Worker started | batch=%s", CLAIM_BATCH)
     sleep_min = float(os.getenv("WORKER_SLEEP_MIN", "0.5"))
@@ -90,3 +102,6 @@ def main_loop():
             log.exception("Worker loop error")
             time.sleep(3)
             # optional: jangan reset sleep_cur di sini
+
+if __name__ == "__main__":
+    main_loop()
