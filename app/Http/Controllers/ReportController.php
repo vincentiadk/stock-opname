@@ -40,9 +40,9 @@ class ReportController extends Controller
                 $sql = "";
             break;
         }   
-        $sql = "SELECT count(1) total,  count(case when problem = 'metadata' then 1 end) as jml_metadata,
-            count(case when problem = 'not found' then 1 end) as jml_notfound,
-            count(case when problem is null  then 1 end) as jml_tagging, TO_CHAR(createdate,'$periode'), TO_CHAR(createdate,  '$periode2') periode
+        $sql = "SELECT count(1) total,  count(case when masalah = 'metadata' then 1 end) as jml_metadata,
+            count(case when masalah = 'not found' then 1 end) as jml_notfound,
+            count(case when masalah is null  then 1 end) as jml_tagging, TO_CHAR(createdate,'$periode'), TO_CHAR(createdate,  '$periode2') periode
             FROM stockopnamedetail
             $where 
             GROUP BY  TO_CHAR(createdate,'$periode'), TO_CHAR(createdate,  '$periode2')

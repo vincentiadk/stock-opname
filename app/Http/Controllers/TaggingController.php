@@ -13,7 +13,7 @@ class TaggingController extends BaseController
             if($request->input('type') == 'barcode') {
                 $sql = "SELECT Title, noinduk, noinduk_deposit, noinduk, collections.nomorbarcode, locations.name as location_name,
                         location_rugs.name as location_rugs_name, location_shelf.name as location_shelf_name,
-                        collections.location_id, collections.location_shelf_id, collections.location_rugs_id, collections.id as colid, s.problem
+                        collections.location_id, collections.location_shelf_id, collections.location_rugs_id, collections.id as colid, s.MASALAH
                         FROM COLLECTIONS
                         left join locations on locations.id = collections.location_id
                         left join location_shelf on location_shelf.id = collections.location_shelf_id
@@ -22,7 +22,7 @@ class TaggingController extends BaseController
             } else {
                 $sql = "SELECT rc.serial_number, c.rfid, c.Title, c.noinduk, c.noinduk_deposit, locations.name as location_name,
                     location_rugs.name as location_rugs_name, location_shelf.name as location_shelf_name,
-                    c.location_id, c.location_shelf_id, c.location_rugs_id, c.id as colid, s.problem
+                    c.location_id, c.location_shelf_id, c.location_rugs_id, c.id as colid, s.MASALAH
                     FROM RFID_COLLECTIONS rc
                     left join collections c on c.rfid = rc.rfid_no
                     left join locations on locations.id = c.location_id
@@ -76,7 +76,7 @@ class TaggingController extends BaseController
                 ["name" => "NOMORBARCODE", "Value" => request('value')],   
             ];
             $so_masalah = array_merge($stockopnamebefore, [
-                ["name" => "problem", "Value" => "metadata"],
+                ["name" => "MASALAH", "Value" => "metadata"],
             ]);
             $collections = [
                 ["name" => "LOCATION_ID", "Value" => $setting->location_id],
@@ -87,7 +87,7 @@ class TaggingController extends BaseController
                 ["name" => "UPDATEDATE", "Value" => now()->addHours(7)->format('Y-m-d H:i:s')],
             ];
             $stockopnamedetail = array_merge($stockopnamebefore, [
-                ["name" => "problem", "Value" => ''],
+                ["name" => "MASALAH", "Value" => ''],
                 ["name" => "PREVLOCATIONID", "Value" => request('location_id')],
                 ["name" => "PREV_LOCATION_SHELF_ID", "Value" => request('location_shelf_id')],
                 ["name" => "PREV_LOCATION_RUGS_ID", "Value" => request('location_rugs_id')],
@@ -164,10 +164,10 @@ class TaggingController extends BaseController
             ];
 
             $so_masalah = array_merge($stockopnamebefore, [
-                ["name" => "problem", "Value" => "metadata"],
+                ["name" => "MASALAH", "Value" => "metadata"],
             ]);
             $stockopnamebefore = array_merge($stockopnamebefore, [
-                ["name" => "problem", "Value" => ''],
+                ["name" => "MASALAH", "Value" => ''],
             ]);
 
             $id_masalah = $this->checkStockOpnameExists($so_masalah);
@@ -256,7 +256,7 @@ class TaggingController extends BaseController
                 ], 500);
             }
             $so_masalah = array_merge($stockopnamebefore, [
-                ["name" => "problem", "Value" => "not found"],
+                ["name" => "MASALAH", "Value" => "not found"],
                 ["name" => "PREVLOCATIONID", "Value" => $setting->location_id],
                 ["name" => "PREV_LOCATION_SHELF_ID", "Value" => $setting->location_shelf_id],
                 ["name" => "PREV_LOCATION_RUGS_ID", "Value" => $setting->location_rugs_id],
@@ -306,7 +306,7 @@ class TaggingController extends BaseController
                 ["name" => "PREVLOCATIONID", "Value" => request('location_id')],
                 ["name" => "PREV_LOCATION_SHELF_ID", "Value" => request('location_shelf_id')],
                 ["name" => "PREV_LOCATION_RUGS_ID", "Value" => request('location_rugs_id')],
-                ["name" => "problem", "Value" => "lepas tagging"],
+                ["name" => "MASALAH", "Value" => "lepas tagging"],
                 ["name" => "CURRENTLOCATIONID", "Value" => ''],
                 ["name" => "CURRENT_LOCATION_SHELF_ID", "Value" => ''],
                 ["name" => "CURRENT_LOCATION_RUGS_ID", "Value" => ''],
