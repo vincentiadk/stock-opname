@@ -70,7 +70,7 @@
     </div>
 </div>
 
-<div class="section">
+<!--div class="section">
     <div class="row mt-0">
         <div class="form-group mb-1">
             <span class="btn btn-info btn-sm" id="btnNfcEnable">Gunakan NFC Reader</span>
@@ -81,6 +81,22 @@
             <img src="{{ asset('/assets/img/taprfid.gif')}}" width="200px"/>
         </div>
     </div>
+</div-->
+<div class="section">
+  <div class="row mt-0">
+    <div class="form-group mb-1 d-flex align-items-center gap-2">
+      <div class="btn-group" role="group" aria-label="Mode pemindaian">
+        <button type="button" class="btn btn-outline-primary btn-sm active" id="btnModeQR">QR</button>
+        <button type="button" class="btn btn-outline-primary btn-sm" id="btnModeBAR">Barcode</button>
+        <button type="button" class="btn btn-outline-success btn-sm" id="btnModeNFC">NFC</button>
+      </div>
+      <label id="lblMsg" class="d-block mt-1" style="display:none"></label>
+    </div>
+
+    <div class="form-group text-center bg-white" id="formRFID" style="display:none">
+      <img src="{{ asset('/assets/img/taprfid.gif')}}" width="200px"/>
+    </div>
+  </div>
 </div>
 
 {{-- Reader tetap di luar card --}}
@@ -124,32 +140,54 @@
     var count = 0;
     var tags_array = [];
     var jenis ="BARQR";
-    var showCamera = false;
+    var MODE = "BAR";
+    
 
     const $badge = $('#badgeCount');
 
     var html5QrCode = new Html5Qrcode("reader");
-    const formats = [
-        Html5QrcodeSupportedFormats.QR_CODE,
-        Html5QrcodeSupportedFormats.CODE_128,
-        Html5QrcodeSupportedFormats.EAN_13,
-        Html5QrcodeSupportedFormats.CODE_39,
-        Html5QrcodeSupportedFormats.UPC_A
+    // format presets
+    const FORMATS_QR  = [ Html5QrcodeSupportedFormats.QR_CODE ];
+    const FORMATS_BAR = [
+    Html5QrcodeSupportedFormats.CODE_128,
+    Html5QrcodeSupportedFormats.EAN_13,
+    Html5QrcodeSupportedFormats.CODE_39,
+    Html5QrcodeSupportedFormats.UPC_A
     ];
 
-    const config = {
-        fps: 12,
-        formatsToSupport: formats,
-        // untuk 1D barcode lebih enak wide & pendek:
-        qrbox: (w, h) => {
-        const minEdge = Math.min(w, h);
+    // config dinamis sesuai mode
+    function buildConfig() {
+    const base = { fps: 12, formatsToSupport: [], qrbox: null, aspectRatio: 1.7778 };
+    if (MODE === "QR") {
+        base.formatsToSupport = FORMATS_QR;
+        base.qrbox = (w,h)=> {
+        const s = Math.floor(Math.min(w,h)*0.8);
+        return { width: s, height: s }; // persegi untuk QR
+        };
+    } else if (MODE === "BAR") {
+        base.formatsToSupport = FORMATS_BAR;
+        base.qrbox = (w,h)=> {
+        const minEdge = Math.min(w,h);
         const wide = Math.floor(minEdge * 0.85);
-        return { width: wide, height: Math.floor(wide * 0.45) }; // persegi panjang
-        },
-        aspectRatio: 1.7778 // 16:9 sering bikin fokus & auto-exposure lebih stabil
-    };
-    //var config = { fps: 10, qrbox: { width: 350, height: 200 } };
-
+        return { width: wide, height: Math.floor(wide * 0.45) }; // lebar-pendek untuk 1D
+        };
+    }
+    return base;
+    }
+    var showCamera = false;
+    async function stopCameraIfAny() {
+        if (showCamera) {
+            try { await html5QrCode.stop(); } catch(_) {}
+            try { await html5QrCode.clear(); } catch(_) {}
+            showCamera = false;
+        }
+    }
+    async function startCamera() {
+        // mulai scan kamera (pakai facingMode; kalau mau pakai cameraId bisa diupgrade)
+        const cfg = buildConfig();
+        await html5QrCode.start({ facingMode: "environment" }, cfg, qrCodeSuccessCallback);
+        showCamera = true;
+    }
     var qrCodeDisplay = () => {
         html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
         showCamera = true;
@@ -190,44 +228,56 @@
     $('#txtManual').on('keypress', function(e){ if(e.which === 13){ e.preventDefault(); addManual(); } });
 
     // NFC
-    var ndef = () => {
-        if ('NDEFReader' in window) {
-            const ndef = new NDEFReader();
-            ndef.scan().then(() => {
-                ndef.onreadingerror = () => { alert("Tidak bisa membaca NFC. Coba lagi."); };
-                ndef.onreading = event => {
-                    $(this).uiSound({play: "success"});
-                    let sn  = event.serialNumber.toString();
-                    let reversedSerial = sn.split(":").reverse().join("").toUpperCase();
-                    isiTags(reversedSerial);
-                };
-            }).catch(error => { alert(`Error! Scan gagal: ${error}.`); });
-        };
-    } 
-
-    $('#btnNfcEnable').on('click', function(){
-        jenis = "RFID";
-        if ('NDEFReader' in window) {
-            if(showCamera) { html5QrCode.stop(); }
-            $('#btnNfcEnable').hide();
-            $('#btnNfcDisable').show();
-            $('#formRFID').show();
-            $('#txtTags').text('');
-            tags = ""; tags_array = []; count = 0; refreshTextarea();
-            ndef();
-        } else {
-            setErrorMessage('Fitur NFC tidak didukung pada browser atau perangkat Anda.');
+    function startNfc() {
+        if (!('NDEFReader' in window)) {
+            setErrorMessage('Fitur NFC tidak didukung pada perangkat Anda.');
+            return;
         }
-    });
+        const ndef = new NDEFReader();
+        ndef.scan().then(() => {
+            ndef.onreadingerror = () => setErrorMessage('Tidak bisa membaca NFC. Coba lagi.');
+            ndef.onreading = event => {
+            $(this).uiSound({play: "success"});
+            let sn  = event.serialNumber.toString();
+            let reversedSerial = sn.split(":").reverse().join("").toUpperCase();
+            addTagValue(reversedSerial);
+            setSuccessMessage('NFC terbaca.');
+            };
+        }).catch(err => setErrorMessage('Scan NFC gagal: ' + err));
+    }
+    async function setMode(newMode) {
+        if (typeof _busy !== 'undefined' && _busy) return; // hormati busy
+        _resetMsg();
+        // UI state
+        $('#btnModeQR').toggleClass('active', newMode === 'QR');
+        $('#btnModeBAR').toggleClass('active', newMode === 'BAR');
+        $('#btnModeNFC').toggleClass('active', newMode === 'NFC');
 
-    $('#btnNfcDisable').on('click', function(){
-        jenis = "BARQR";
-        qrCodeDisplay();
-        $('#btnNfcDisable').hide();
-        $('#btnNfcEnable').show();
-        $('#formRFID').hide();
-        tags = ""; tags_array = []; count = 0; refreshTextarea();
-    });
+        MODE = newMode;
+
+        if (MODE === 'NFC') {
+            jenis = 'RFID';
+            $('#formRFID').show();
+            // matikan kamera dulu
+            await stopCameraIfAny();
+            // mulai NFC
+            startNfc();
+        } else {
+            jenis = 'BARQR';
+            $('#formRFID').hide();
+            // restart kamera dengan config sesuai mode
+            await stopCameraIfAny();
+            try {
+            await startCamera();
+            } catch(e) {
+            setErrorMessage('Kamera tidak bisa diakses: ' + (e?.message || e));
+            }
+        }
+    }
+    // tombol mode
+    $('#btnModeQR').on('click', ()=> setMode('QR'));
+    $('#btnModeBAR').on('click', ()=> setMode('BAR'));
+    $('#btnModeNFC').on('click', ()=> setMode('NFC'));
 
     // --- helper loading tombol ---
 const $btnSimpan = $('#btnSimpan');
@@ -264,7 +314,8 @@ function _resetMsg() {
     .show()
     .attr({'role':'alert','aria-live':'polite'})
     // bersihkan kelas yang berpotensi bentrok
-    .removeClass('text-white alert alert-success alert-danger flash-success flash-error');
+    .removeClass('text-white alert alert-success alert-danger flash-success flash-error')
+    .html('');
 }
 
 // ==== SCROLL HELPER ====
@@ -379,6 +430,7 @@ $('#btnHapus').on('click', function(){
 });
 
     // Start default barcode scanner
-    qrCodeDisplay();
+    //qrCodeDisplay();
+    setMode(MODE);
 </script>
 @endsection
