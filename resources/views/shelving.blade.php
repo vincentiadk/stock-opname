@@ -8,9 +8,9 @@
     .muted { color: #6b7280; } /* gray-500 */
     .btn-pill { border-radius: 999px; }
     .btn-toggle { padding: .5rem .9rem; font-weight: 600; }
-    #reader { border-radius: 1rem; overflow: hidden; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
     .help { font-size: .875rem; color:#6b7280; }
+    #reader video { height: 100%; object-fit: contain; width:100%}
 </style>
 
 <div class="section mt-2 mb-4 page-wrap">
@@ -78,9 +78,7 @@
                 </div>
 
                 {{-- kotak kamera proporsional --}}
-                <div class="mt-2" id="cameraBox">
-                    <div id="reader"></div>
-                </div>
+                <div id="reader"></div>
             </div>
 
             {{-- Input Manual --}}
@@ -158,7 +156,6 @@
         try {
             html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
             showCamera = true;
-            $('#cameraBox').removeClass('d-none');
         } catch (e) {
             showError('Kamera tidak bisa diakses: ' + (e?.message || e));
         }
@@ -168,7 +165,7 @@
             try { await html5QrCode.stop(); } catch(_) {}
             showCamera = false;
         }
-        $('#cameraBox').addClass('d-none');
+        //$('#cameraBox').addClass('d-none');
     };
 
     // ==== TAMBAH TAG ====
