@@ -1,117 +1,110 @@
 @extends('layouts.index')
-
 @section('content')
+<!-- Bootstrap Icons (CDN) -->
+<link rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
 <style>
-    /* tweak ringan agar lebih enak dilihat di mobile */
-    .page-wrap { max-width: 900px; margin: 0 auto; }
-    .card-soft { border: 0; border-radius: 1rem; box-shadow: 0 6px 18px rgba(16,24,40,.06); }
-    .muted { color: #6b7280; } /* gray-500 */
-    .btn-pill { border-radius: 999px; }
-    .btn-toggle { padding: .5rem .9rem; font-weight: 600; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
-    .help { font-size: .875rem; color:#6b7280; }
-    #reader video { height: 100%; object-fit: contain; width:100%}
+    /* Sorot pesan */
+#lblSuccess, #lblError { padding: .5rem .75rem; border-radius: .5rem; }
+.flash-success { animation: highlightGreen 1.2s ease; }
+.flash-error   { animation: highlightRed 1.2s ease; }
+@keyframes highlightGreen { 0% { background:#d1fae5 } 100% { background: transparent } }
+@keyframes highlightRed   { 0% { background:#fee2e2 } 100% { background: transparent } }
+/* Spinner ala Bootstrap (polyfill) */
+@keyframes _spin{to{transform:rotate(360deg)}}
+.spinner-border{
+  display:inline-block;
+  width:1rem; height:1rem;
+  vertical-align:-.125em;
+  border:.15em solid currentColor;
+  border-right-color:transparent;
+  border-radius:50%;
+  animation:_spin .75s linear infinite;
+}
+.spinner-border-sm{ width:.75rem; height:.75rem; border-width:.12em; }
+
+/* Utility margin kanan 0.5rem (Bootstrap me-2) */
+.me-2{ margin-right:.5rem; }
+
+/* (opsional) state disabled biar keliatan */
+.btn[disabled], .btn.disabled{ opacity:.65; pointer-events:none; }
 </style>
+<div class="section mt-2 mb-2">
+    <div class="row">
+        <div class="col-md-12">
 
-<div class="section mt-2 mb-4 page-wrap">
-    <div class="card card-soft">
-        <div class="card-body p-3 p-md-4">
-            <div class="d-flex align-items-center mb-3">
-                <a href="javascript:history.back()" class="me-2 text-decoration-none">
-                    <i class="bi bi-arrow-left"></i>
-                </a>
-                <h5 class="m-0">Penjajaran Koleksi</h5>
-            </div>
+            {{-- Nama Project --}}
+            @if($setting && $setting->stockopname_id)
+                <h3 class="mb-0">Nama Project :
+                    <span class="text-primary">{{ $setting->stockopname_name }}</span>
+                </h3>
+            @endif
 
-            {{-- Info Project & Lokasi --}}
-            @if($setting)
-                @if(! is_null($setting->stockopname_id))
-                    <div class="fw-semibold fs-6">Nama Project : <span class="text-primary">{{ $setting->stockopname_name }}</span></div>
-                @endif
+            {{-- Lokasi --}}
+            <h3 class="mb-1">Lokasi :
 
-                <div class="fw-semibold fs-6">
-                    Lokasi :
-                    @if(! is_null($setting->location_id))
-                        <span class="text-primary">{{ $setting->location_name }}</span>
-                        @if(! is_null($setting->location_shelf_id))
-                            , <span class="text-primary">{{ $setting->location_shelf_name }}</span>
-                        @endif
-                        @if(! is_null($setting->location_rugs_id))
-                            , <span class="text-primary">{{ $setting->location_rugs_name }}</span>
-                        @else
-                            <div class="alert alert-warning py-2 px-3 mt-2 mb-0">
-                                Anda belum mengatur lokasi dengan lengkap.
-                                <a href="{{ url('/setting') }}" class="btn btn-sm btn-primary ms-2">Atur lokasi</a>
-                            </div>
-                        @endif
+            @if($setting && $setting->location_id)
+                <span class="text-success">
+                    {{ $setting->location_name }}
+                    @if($setting->location_shelf_id)
+                        , {{ $setting->location_shelf_name }}
+                    @endif
+                    @if($setting->location_rugs_id)
+                        , {{ $setting->location_rugs_name }}
                     @else
-                        <div class="alert alert-warning py-2 px-3 mt-2 mb-0">
-                            Anda belum mengatur lokasi.
+                        <div class="alert alert-warning mt-2 mb-0">
+                            Anda belum mengatur lokasi dengan lengkap.
                             <a href="{{ url('/setting') }}" class="btn btn-sm btn-primary ms-2">Atur lokasi</a>
                         </div>
                     @endif
-                </div>
+                </span>
             @else
-                <div class="alert alert-warning py-2 px-3 mt-2 mb-0">
+                <div class="alert alert-warning mt-2 mb-0">
                     Anda belum mengatur lokasi.
                     <a href="{{ url('/setting') }}" class="btn btn-sm btn-primary ms-2">Atur lokasi</a>
                 </div>
             @endif
+            </h3>
+        </div>
+    </div>
+</div>
 
-            {{-- Alerts --}}
-            <div class="mt-3">
-                <div id="lblError" class="alert alert-danger d-none mb-2"></div>
-                <div id="lblSuccess" class="alert alert-success d-none mb-2"></div>
-            </div>
+<div class="section">
+    <div class="row mt-0">
+        <div class="form-group mb-1">
+            <span class="btn btn-info btn-sm" id="btnNfcEnable">Gunakan NFC Reader</span>
+            <span class="btn btn-success btn-sm" id="btnNfcDisable" style="display:none">Gunakan Barcode Reader</span>
+            <label id="lblMsg" class="text-white d-block mt-1" style="display:none"></label>
+        </div>
+        <div class="form-group text-center bg-white" id="formRFID" style="display:none">
+            <img src="{{ asset('/assets/img/taprfid.gif')}}" width="200px"/>
+        </div>
+    </div>
+</div>
 
-            {{-- Toggle Scanner --}}
-            <div class="d-flex gap-2 mt-3">
-                <button type="button" id="btnNfcEnable"  class="btn btn-success btn-pill btn-toggle">Gunakan NFC Reader</button>
-                <button type="button" id="btnNfcDisable" class="btn btn-outline-success btn-pill btn-toggle d-none">Gunakan Barcode Reader</button>
-            </div>
+{{-- Reader tetap di luar card --}}
+<div id="reader"></div>
 
-            {{-- Kamera / Reader --}}
-            <div class="mt-3">
-                <div id="formRFID" class="text-center bg-white py-3 rounded d-none">
-                    <img src="{{ asset('/assets/img/taprfid.gif')}}" width="160" alt="Tap RFID"/>
-                    <div class="help mt-2">Tempelkan kartu/tag ke perangkat yang mendukung NFC</div>
-                </div>
+<div class="section mt-2">
+    <div class="form-group">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h3 class="mb-0">Daftar Barcode / RFID</h3>
+            <span class="badge bg-secondary" id="badgeCount">0 item</span>
+        </div>
 
-                {{-- kotak kamera proporsional --}}
-                <div id="reader"></div>
-            </div>
+        {{-- INPUT MANUAL --}}
+        <div class="input-group mb-2">
+            <input type="text" id="txtManual" class="form-control" placeholder="Ketik Item ID manual…">
+            <button type="button" class="btn btn-outline-primary" id="btnAddManual">Tambahkan</button>
+        </div>
+        <small class="text-muted d-block mb-2">Tekan <kbd>Enter</kbd> untuk menambahkan cepat.</small>
 
-            {{-- Input Manual --}}
-            <div class="mt-4">
-                <label for="txtManual" class="form-label fw-semibold">
-                    Input Manual Item ID <span class="muted">(jika barcode/NFC tidak terbaca)</span>
-                </label>
-                <div class="input-group">
-                    <input type="text" id="txtManual" class="form-control" placeholder="Ketik Item ID lalu Enter atau klik Tambahkan">
-                    <button type="button" id="btnAddManual" class="btn btn-primary">Tambahkan</button>
-                </div>
-                <div class="help mt-1">Tekan <kbd>Enter</kbd> untuk menambahkan cepat.</div>
-            </div>
+        <textarea id="txtTags" placeholder="Barcode / RFID yang berhasil di-scan akan muncul di sini" readonly rows="5" class="form-control" style="background-color:#fff"></textarea>
 
-            {{-- Daftar Tags --}}
-            <div class="mt-4">
-                <div class="d-flex align-items-center justify-content-between">
-                    <h6 class="mb-2">Daftar Barcode / RFID</h6>
-                    <span class="badge text-secondary" id="badgeCount">0 item</span>
-                </div>
-                <textarea id="txtTags" readonly rows="5" class="form-control mono"
-                    placeholder="Barcode / RFID yang berhasil di-scan akan muncul di sini"></textarea>
-            </div>
-
-            {{-- Simpan --}}
-            <div class="mt-4 d-grid gap-2 d-md-flex">
-                <button type="button" id="btnSimpan" class="btn btn-primary btn-lg">
-                    Simpan Data
-                </button>
-                <button type="button" id="btnHapus" class="btn btn-outline-danger btn-lg">
-                    Hapus Data
-                </button>
-            </div>
+        <div class="d-grid gap-2 d-md-flex mt-3">
+            <span class="btn btn-primary btn-lg" id="btnSimpan">Simpan Data</span>
+            <span class="btn btn-outline-danger btn-lg" id="btnHapus">Hapus Data</span>
         </div>
     </div>
 </div>
@@ -120,204 +113,253 @@
 @section('script')
 <script src="{{ asset('html5-qrcode.js') }}"></script>
 <script src="{{ asset('assets/js/jquery.ui.sound.js')}}"></script>
-<script>
-    // ==== SETTINGS DARI SERVER ====
-    var setlocation_id       = "{{$setting->location_id ? $setting->location_id : ''}}";
-    var setlocation_shelf_id = "{{$setting->location_shelf_id ? $setting->location_shelf_id : ''}}";
-    var setlocation_rugs_id  = "{{$setting->location_rugs_id ? $setting->location_rugs_id : ''}}";
-    var stockopname_id       = "{{$setting->stockopname_id ? $setting->stockopname_id : ''}}";
 
-    // ==== STATE LOKAL ====
-    var tags_array = [];
-    var tags = '';
+<script>
+    var setlocation_id = "{{$setting->location_id ? $setting->location_id :''}}";
+    var setlocation_shelf_id = "{{$setting->location_shelf_id ? $setting->location_shelf_id : ''}}"; 
+    var setlocation_rugs_id = "{{$setting->location_rugs_id ? $setting->location_rugs_id :  ''}}";
+    var stockopname_id = "{{$setting->stockopname_id ? $setting->stockopname_id :''}}";
+
+    var tags = "";
     var count = 0;
-    var jenis = "BARQR";
+    var tags_array = [];
+    var jenis ="BARQR";
     var showCamera = false;
 
-    const $err = $('#lblError'), $ok = $('#lblSuccess'), $badge = $('#badgeCount');
+    const $badge = $('#badgeCount');
+
+    var html5QrCode = new Html5Qrcode("reader");
+    var config = { fps: 10, qrbox: { width: 350, height: 200 } };
+
+    var qrCodeDisplay = () => {
+        html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
+        showCamera = true;
+    }
 
     const refreshTextarea = () => {
         $('#txtTags').text(tags);
         if (count > 5) $('#txtTags').attr('rows', count);
         $badge.text(count + ' item');
-        updateButtonStates();
     };
 
-    // ==== QR/Barcode ====
-    var html5QrCode = new Html5Qrcode("reader");
-    var config = { fps: 10, qrbox: { width: 350, height: 200 } };
-
-    const qrCodeSuccessCallback = (decodedText) => {
-        $(this).uiSound({ play: "success" });
-        isiTags(decodedText);
-    };
-
-    const qrCodeDisplay = () => {
-        try {
-            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback);
-            showCamera = true;
-        } catch (e) {
-            showError('Kamera tidak bisa diakses: ' + (e?.message || e));
-        }
-    };
-    const stopCameraIfAny = async () => {
-        if (showCamera) {
-            try { await html5QrCode.stop(); } catch(_) {}
-            showCamera = false;
-        }
-        //$('#cameraBox').addClass('d-none');
-    };
-
-    // ==== TAMBAH TAG ====
-    const isiTags = (raw) => {
-        const v = String(raw || '').trim();
-        if (!v) return;
-        if (jQuery.inArray(v, tags_array) !== -1) return; // cegah duplikat
-
+    function addTagValue(value) {
+        const v = String(value || '').trim();
+        if (!v) return false;
+        if (jQuery.inArray(v, tags_array) !== -1) return false; // hindari duplikat
         tags_array.push(v);
         tags += v + '\n';
         count += 1;
         refreshTextarea();
+        return true;
+    }
+
+    var isiTags = (value) => { addTagValue(value); };
+
+    var qrCodeSuccessCallback = (decodedText, decodedResult) => {
+        $(this).uiSound({play: "success"});
+        isiTags(decodedText);
     };
 
-    // ==== NFC ====
-    const startNdef = () => {
-        if (!('NDEFReader' in window)) {
-            showError('Fitur NFC tidak didukung pada perangkat Anda.');
-            return;
-        }
-        const ndef = new NDEFReader();
-        ndef.scan().then(() => {
-            ndef.onreadingerror = () => showError('Gagal membaca NFC. Coba ulangi.');
-            ndef.onreading = (event) => {
-                $(this).uiSound({ play: "success" });
-                let sn  = event.serialNumber.toString();
-                let reversedSerial = sn.split(":").reverse().join("").toUpperCase();
-                isiTags(reversedSerial);
-            };
-        }).catch(err => showError('Gagal mulai scan NFC: ' + err));
-    };
+    // INPUT MANUAL handlers
+    function addManual() {
+        const ok = addTagValue($('#txtManual').val());
+        if (!ok) { setErrorMessage('Item ID kosong atau sudah ada di daftar.'); return; }
+        $('#txtManual').val('');
+        setSuccessMessage('Item ID ditambahkan.');
+    }
+    $('#btnAddManual').on('click', addManual);
+    $('#txtManual').on('keypress', function(e){ if(e.which === 13){ e.preventDefault(); addManual(); } });
 
-    // ==== TOGGLE MODE ====
-    $('#btnNfcEnable').on('click', async function(){
+    // NFC
+    var ndef = () => {
+        if ('NDEFReader' in window) {
+            const ndef = new NDEFReader();
+            ndef.scan().then(() => {
+                ndef.onreadingerror = () => { alert("Tidak bisa membaca NFC. Coba lagi."); };
+                ndef.onreading = event => {
+                    $(this).uiSound({play: "success"});
+                    let sn  = event.serialNumber.toString();
+                    let reversedSerial = sn.split(":").reverse().join("").toUpperCase();
+                    isiTags(reversedSerial);
+                };
+            }).catch(error => { alert(`Error! Scan gagal: ${error}.`); });
+        };
+    } 
+
+    $('#btnNfcEnable').on('click', function(){
         jenis = "RFID";
-        await stopCameraIfAny();
-        $('#btnNfcEnable').addClass('d-none');
-        $('#btnNfcDisable').removeClass('d-none');
-        $('#formRFID').removeClass('d-none');
-        // reset daftar (opsional)
-        //tags_array = []; tags=''; count=0; refreshTextarea();
-        startNdef();
+        if ('NDEFReader' in window) {
+            if(showCamera) { html5QrCode.stop(); }
+            $('#btnNfcEnable').hide();
+            $('#btnNfcDisable').show();
+            $('#formRFID').show();
+            $('#txtTags').text('');
+            tags = ""; tags_array = []; count = 0; refreshTextarea();
+            ndef();
+        } else {
+            setErrorMessage('Fitur NFC tidak didukung pada browser atau perangkat Anda.');
+        }
     });
 
     $('#btnNfcDisable').on('click', function(){
         jenis = "BARQR";
         qrCodeDisplay();
-        $('#btnNfcDisable').addClass('d-none');
-        $('#btnNfcEnable').removeClass('d-none');
-        $('#formRFID').addClass('d-none');
-        
+        $('#btnNfcDisable').hide();
+        $('#btnNfcEnable').show();
+        $('#formRFID').hide();
+        tags = ""; tags_array = []; count = 0; refreshTextarea();
     });
 
-    // ==== INPUT MANUAL ====
-    const addManual = () => {
-        const v = $('#txtManual').val().trim();
-        if (!v) return showError('Item ID kosong. Silakan isi dulu.');
-        isiTags(v);
-        $('#txtManual').val('');
-        showSuccess('Item ID ditambahkan.');
-    };
-    $('#btnAddManual').on('click', addManual);
-    $('#txtManual').on('keypress', function(e){ if (e.which === 13) { e.preventDefault(); addManual(); } });
+    // --- helper loading tombol ---
+const $btnSimpan = $('#btnSimpan');
+const $btnHapus  = $('#btnHapus');
 
-    // ===== Button Loading Helper =====
-    const $btnSimpan = $('#btnSimpan');
-    const $btnHapus  = $('#btnHapus');
-    let _btnSimpanHTML = $btnSimpan.html();
-    let _btnHapusHTML  = $btnHapus.html();
+function setBtnLoading(on, text = 'Menyimpan...') {
+  if (on) {
+    $btnSimpan
+      .prop('disabled', true)
+      .html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' + text);
+    $btnHapus.prop('disabled', true);
+  } else {
+    $btnSimpan.prop('disabled', false).text('Simpan Data');
+    $btnHapus.prop('disabled', false);
+  }
+}
 
-    const setBtnLoading = ($btn, on, textLoading) => {
-        if (on) {
-            $btn.prop('disabled', true).html(
-            '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>' + (textLoading || 'Memproses...')
-            );
-        } else {
-            if ($btn.is($btnSimpan)) $btn.html(_btnSimpanHTML);
-            else if ($btn.is($btnHapus)) $btn.html(_btnHapusHTML);
-            $btn.prop('disabled', false);
-        }
-    };
+// ==== IKON (Bootstrap Icons) ====
+const ICON_OK  = '<i class="bi bi-check-circle-fill me-2" aria-hidden="true"></i>';
+const ICON_ERR = '<i class="bi bi-x-circle-fill me-2" aria-hidden="true"></i>';
 
-    // ===== Alert Helpers (auto hide opsional) =====
-    const showSuccess = (msg, autoHideMs = 2500) => {
-        $('#lblError').addClass('d-none').text('');
-        $('#lblSuccess').removeClass('d-none').text(msg);
-        // scroll ke alert biar terlihat
-        const y = $('#lblSuccess').offset()?.top || 0;
-        window.scrollTo({ top: y - 80, behavior: 'smooth' });
-        if (autoHideMs) setTimeout(() => $('#lblSuccess').addClass('d-none'), autoHideMs);
-    };
+// ==== ELEM & TIMER ====
+const $msg = $('#lblMsg');
+let _flashTimer = null, _hideTimer = null;
 
-    const showError = (msg) => {
-        $('#lblSuccess').addClass('d-none').text('');
-        $('#lblError').removeClass('d-none').text(msg);
-        const y = $('#lblError').offset()?.top || 0;
-        window.scrollTo({ top: y - 80, behavior: 'smooth' });
-    };
-    // ==== SIMPAN ====
-    $('#btnSimpan').on('click', function () {
-        if (!tags_array.length) return showError('Belum ada data untuk disimpan.');
-        setBtnLoading($btnSimpan, true);
-        $.ajax({
-            type: 'POST',
-            url: '{{ url("stock-opname/save") }}',
-            contentType: "application/json; charset=utf-8",
-            dataType: 'json',
-            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-            data: JSON.stringify({
-                "stockopnameid":     "{{ $setting->stockopname_id ?? '' }}",
-                "location_shelf_id": "{{ $setting->location_shelf_id ?? '' }}",
-                "location_rugs_id":  "{{ $setting->location_rugs_id ?? '' }}",
-                "location_id":       "{{ $setting->location_id ?? '' }}",
-                "listdata":          tags_array,
-                "jenis":             jenis,
-            }),
-            success: function() {
-                setBtnLoading($btnSimpan, false);      
-                $('#txtTags').attr('rows', 5).text('');
-                tags = ''; tags_array = []; count = 0; refreshTextarea();
-                showSuccess('Data koleksi berhasil disimpan!'); 
-            },
-            error: function(xhr){
-                setBtnLoading($btnSimpan, false);
-                const msg = xhr?.responseJSON?.Message || 'Terjadi kesalahan';
-                showError('Gagal menyimpan! ' + msg);
-            }
-        });
-    });
+// ==== RESET HELPER ====
+function _resetMsg() {
+  if (_flashTimer) { clearTimeout(_flashTimer); _flashTimer = null; }
+  if (_hideTimer)  { clearTimeout(_hideTimer);  _hideTimer  = null; }
 
-    //==== HAPUS DATA ======
-    $('#btnHapus').on('click', async function () {
-        if (!tags_array.length) return showError('Tidak ada data untuk dihapus.');
-        if (!confirm('Hapus semua data yang sudah dipindai dari daftar?')) return;
-        tags = '';
-        tags_array = [];
-        count = 0;
-        $('#txtTags').attr('rows', 5).text('');
-        refreshTextarea();
-        showSuccess('Daftar berhasil dikosongkan.');
-    });
+  // pastikan terlihat & siap dipakai
+  $msg
+    .stop(true, true)
+    .show()
+    .attr({'role':'alert','aria-live':'polite'})
+    // bersihkan kelas yang berpotensi bentrok
+    .removeClass('text-white alert alert-success alert-danger flash-success flash-error');
+}
 
-    const updateButtonStates = () => {
-        const hasData = tags_array.length > 0;
-        $btnSimpan.prop('disabled', !hasData);
-        $btnHapus.prop('disabled', !hasData);
-    };
-    
-    // panggil sekali saat init
-    updateButtonStates();
-    // start default: barcode/QR
+// ==== SCROLL HELPER ====
+function _scrollTo($el) {
+  const y = $el.offset()?.top || 0;
+  window.scrollTo({ top: y - 80, behavior: 'smooth' });
+}
+
+// ==== PESAN ERROR ====
+function setErrorMessage(text, { scroll = true, autoHideMs = 0 } = {}) {
+  _resetMsg();
+  $msg
+    .addClass('alert alert-danger flash-error')
+    .html(ICON_ERR + (text || 'Terjadi kesalahan.'));
+  if (scroll) _scrollTo($msg);
+
+  // hapus efek flash saja (styling alert tetap)
+  _flashTimer = setTimeout(() => $msg.removeClass('flash-error'), 1200);
+
+  // auto-hide jika diminta
+  if (autoHideMs && autoHideMs > 0) {
+    _hideTimer = setTimeout(() => $msg.fadeOut(200), autoHideMs);
+  }
+}
+
+// ==== PESAN SUKSES ====
+function setSuccessMessage(text, { scroll = true, autoHideMs = 2500 } = {}) {
+  _resetMsg();
+  $msg
+    .addClass('alert alert-success flash-success')
+    .html(ICON_OK + (text || 'Berhasil.'));
+  if (scroll) _scrollTo($msg);
+
+  _flashTimer = setTimeout(() => $msg.removeClass('flash-success'), 1200);
+
+  if (autoHideMs && autoHideMs > 0) {
+    _hideTimer = setTimeout(() => $msg.fadeOut(200), autoHideMs);
+  }
+}
+const $btnNfcEn  = $('#btnNfcEnable');
+const $btnNfcDis = $('#btnNfcDisable');
+const $btnAddMan = $('#btnAddManual');
+const $txtManual = $('#txtManual');
+let _busy = false;
+// kunci/lepaskan UI (handle <button> dan <span class="btn">)
+function setUIBusy(on) {
+    _busy = on;
+  // elemen yang native bisa disabled
+  $btnSimpan.prop('disabled', on);
+  $btnHapus.prop('disabled', on);
+  $btnAddMan.prop('disabled', on);
+  $txtManual.prop('disabled', on);
+
+  // elemen <span class="btn ..."> yang tidak punya properti disabled
+  [$btnNfcEn, $btnNfcDis].forEach($el => {
+    if (on) $el.addClass('disabled').attr('aria-disabled', 'true');
+    else    $el.removeClass('disabled').removeAttr('aria-disabled');
+  });
+}
+// --- handler SIMPAN (pakai loading + sorot pesan) ---
+$('#btnSimpan').on('click', function () {
+  if (!tags_array.length) {
+    setErrorMessage('Belum ada data untuk disimpan.');
+    return;
+  }
+  setUIBusy(true); 
+  setBtnLoading(true);
+
+  $.ajax({
+    type: 'POST',
+    url: '{{ url("stock-opname/save") }}',
+    contentType: "application/json; charset=utf-8",
+    dataType: 'json',
+    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+    data: JSON.stringify({
+      "stockopnameid" : stockopname_id,
+      "location_shelf_id": setlocation_shelf_id,
+      "location_rugs_id":  setlocation_rugs_id,
+      "location_id":       setlocation_id,
+      "listdata":          tags_array,
+      "jenis":             jenis,
+    }),
+    success: function() {
+      setBtnLoading(false);
+      setUIBusy(false);
+      setSuccessMessage('Data koleksi berhasil disimpan!');
+      // reset daftar
+      tags = ""; tags_array = []; count = 0;
+      $('#txtTags').attr('rows',5).text('');
+      $('#badgeCount').text('0 item');
+    },
+    error: function(xhr){
+      setBtnLoading(false);
+      setUIBusy(false);
+      const msg = xhr?.responseJSON?.Message || 'Terjadi kesalahan';
+      setErrorMessage('Gagal menyimpan! ' + msg);
+    }
+  });
+});
+$('#txtManual').on('keydown', e => { if (_busy) e.preventDefault(); });
+// --- handler HAPUS (sedikit rapi) ---
+$('#btnHapus').on('click', function(){
+  if(!tags_array.length) {
+    setErrorMessage('Tidak ada data untuk dihapus.');
+    return;
+  }
+  if(!confirm('Hapus semua data yang sudah dipindai?')) return;
+  tags = ""; tags_array = []; count = 0;
+  $('#txtTags').attr('rows',5).text('');
+  $('#badgeCount').text('0 item');
+  setSuccessMessage('Daftar berhasil dikosongkan.');
+});
+
+    // Start default barcode scanner
     qrCodeDisplay();
 </script>
 @endsection
-
