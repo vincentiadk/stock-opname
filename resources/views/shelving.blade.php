@@ -159,7 +159,7 @@
     function buildConfig() {
         const base = { fps: 12, formatsToSupport: [], qrbox: null, aspectRatio: 1.7778 };
         if (MODE === "QR") {
-            startQRSharp();
+            //startQRSharp();
             base.formatsToSupport = FORMATS_QR;
             base.qrbox = (w,h)=> {
             const s = Math.floor(Math.min(w,h)*0.85);
